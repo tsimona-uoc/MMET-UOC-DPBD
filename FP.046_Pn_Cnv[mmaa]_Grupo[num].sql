@@ -71,6 +71,14 @@ alter table `users` add column birthdate DATETIME DEFAULT NULL AFTER phone;
 
 -- Pregunta 1.8 Crear un disparador que al actualizar el campo username de la tabla users revise si su contenido contiene mayúsculas, minúsculas, digitos y alguno de los siguientes símbolos: -_#@. De no ser así, no permitir la actualización.
 
+DELIMITER //
+CREATE TRIGGER TR_ValidUsernameUpdate BEFORE UPDATE ON `users` FOR EACH ROW
+BEGIN
+IF NOT NEW.username REGEXP '^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[-_#@])[A-Za-z0-9\-_#@]+$' THEN
+	SIGNAL SQLSTATE '99001'
+    SET MESSAGE_TEXT = 'El usuario debe contener al menos un caracter de cada tipo: mayuscula, minuscula, digito, (-_#@)';
+END IF;
+END;
 
 -- Pregunta 1.9 Diseñar un disparador que prevenga que el campo email de la tabla users tenga un formato correcto al actualizar o insertar un nuevo email.
 
