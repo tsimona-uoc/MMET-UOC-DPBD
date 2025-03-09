@@ -52,11 +52,34 @@ ADD COLUMN birthdate DATE;
  */
 
 -- Pregunta 1.4 Relacionar las tablas de la Base de Datos tomando en cuenta aquellas columnas que tienen en su descripción el texto Referencia de clave externa a la tabla xxx.. Al crear las claves foráneas, agregar las cláusulas ON UPDATE y ON DELETE pertinentes, justificando con un comentario cada decisión, con comentarios en la plantilla.
+
 ALTER TABLE event
 ADD CONSTRAINT fk_event_category
 FOREIGN KEY (catid) REFERENCES category(catid)
 ON UPDATE CASCADE -- Si el ID en la tabla category cambia, se actualiza automáticamente en la tabla event.
 ON DELETE RESTRICT; -- Evita eliminar una categoría si está siendo referenciada por algún evento.
+
+ALTER TABLE event
+ADD CONSTRAINT fk_event_date
+FOREIGN KEY (dateid) REFERENCES date(dateid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_date
+FOREIGN KEY (dateid) REFERENCES date(dateid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+ALTER TABLE listing
+ADD CONSTRAINT fk_listing_date
+FOREIGN KEY (dateid) REFERENCES date(dateid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+
+
+
 -- Pregunta 1.5 Revisar los comentarios en las tablas y generar dos restricciones de tipo check para controlar la integridad de los datos.
 
 -- Pregunta 1.6 Revisar los comentarios en las tablas y cambiar los campos que así lo requieran, por campos autocalculados.
