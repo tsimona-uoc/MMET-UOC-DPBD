@@ -80,7 +80,36 @@ IF NOT NEW.username REGEXP '^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[-_#@])[A-Za-
 END IF;
 END;
 
+/*
+* Se crea el trigger TR_ValidUsernameUpdate que se lanza antes de actualizar la tabla users. Este trigger comprueba que el campo username que se va a actualizar cumple la expresión regular, de no ser asi lanza un mensaje indicando el error.
+*/
+
 -- Pregunta 1.9 Diseñar un disparador que prevenga que el campo email de la tabla users tenga un formato correcto al actualizar o insertar un nuevo email.
+
+DELIMITER //
+CREATE TRIGGER TR_VALIDMAILONINSERT BEFORE INSERT ON `users` FOR EACH ROW
+BEGIN
+	IF NOT NEW.email REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,63}$' THEN
+		SIGNAL SQLSTATE '99002'
+		SET message_text = 'No se cumple la expresión regular de correo electronico valido.';
+    END IF;
+END;
+
+DELIMITER //
+CREATE TRIGGER TR_VALIDMAILONUPDATE BEFORE UPDATE ON `users` FOR EACH ROW
+BEGIN
+	IF NOT NEW.email REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,63}$' THEN
+		SIGNAL SQLSTATE '99003'
+		SET message_text = 'No se cumple la expresión regular de correo electronico valido.';
+    END IF;
+END;
+
+/*
+* Dado que mysql no permite crear un trigger unico para ambas operaciones (UPDATE E INSERT), se crean dos triggers:
+* TR_VALIDMAILONINSERT -> Ejecutado cuando se inserta un nuevo email (una fila nueva)
+* TR_VALIDMAILONUPDATE -> Ejecutado cuando se actualiza un email existente (email = ****)
+* En ambos triggers se comprueba que se cumple la expresión regular definida.
+*/
 
 
 -- Pregunta 1.10 Inventar una restricción que sirva de utilidad para mantener la integridad de la Base de Datos.
