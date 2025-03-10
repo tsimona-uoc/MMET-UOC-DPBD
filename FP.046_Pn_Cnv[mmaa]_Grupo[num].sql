@@ -77,7 +77,22 @@ FOREIGN KEY (dateid) REFERENCES date(dateid)
 ON UPDATE CASCADE
 ON DELETE RESTRICT;
 
+CREATE TABLE listing_bakcup
+SELECT * FROM listing WHERE 1=0; -- Creamos un backup de la tabla listing para mover los registros en eventid que no coinciden con la tabla event.
 
+INSERT INTO listing_bakcup
+SELECT *
+FROM listing
+WHERE eventid NOT IN (SELECT eventid FROM event); -- Movemos todos los registros de la columna eventid en la tabla listing que no coinciden con los registros de la tabla event.
+
+DELETE FROM listing
+WHERE eventid NOT IN (SELECT eventid FROM event); -- Eliminamos los registros que hemos movido a la tabla listing_backup
+
+ALTER TABLE listing
+ADD CONSTRAINT fk_listing_event
+FOREIGN KEY (eventid) REFERENCES event (eventid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT; -- Una vez hechos los cambios ya nos deja crear la FK
 
 
 -- Pregunta 1.5 Revisar los comentarios en las tablas y generar dos restricciones de tipo check para controlar la integridad de los datos.
