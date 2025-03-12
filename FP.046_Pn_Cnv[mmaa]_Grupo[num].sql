@@ -12,30 +12,6 @@
 --
 -- Database: [fp_204_23]
 -- --------------------------------------------------------------
-/* Utilizar la misma numeración de preguntas de la actividad. Ejemplos: */
-
---
--- Pregunta 5.1. Indicar el número de empleados registrados en la Base de Datos.
---
-SELECT COUNT(*) AS NumeroEmpleados FROM EMPLEADO;
-
---
--- Pregunta 5.2. Mostrar todos los empleados ordenados por el departamento al cual pertenecen.
---
-SELECT d.Departamento, e.Nombre, e.Apellido1, e.Apellido2, e.DNI
-FROM DEPARTAMENTO AS d INNER JOIN EMPLEADO AS e
-ON d.pkDepartamento = e.fkDepartamento
-ORDER BY d.Departamento;
-
-/* Los comentarios a las preguntas, indicarlos en este formato después de la instrucción SQL correspondiente.
- * Ejemplo: 
- * Usamos las tablas DEPARTAMENTO y EMPLEADO
- * con el alias d y e respectivamente.
- */
-
---
--- Pregunta 5.3. etc...
---
 
 -- Pregunta 1.1 Importar las tablas y el script de control que se encuentra en los archivos .sql con el mismo nombre.
 
@@ -77,6 +53,10 @@ FOREIGN KEY (dateid) REFERENCES date(dateid)
 ON UPDATE CASCADE
 ON DELETE RESTRICT;
 
+/* Al intentar crear la FK en la tabla listing que hace referencia al eventid de la tabla event, nos encontramos un error porque
+ * hay registros eventid que no coinciden en ambas tablas. Para solucionarlo hacemos los siguientes pasos.
+ */
+
 CREATE TABLE listing_bakcup
 SELECT * FROM listing WHERE 1=0; -- Creamos un backup de la tabla listing para mover los registros en eventid que no coinciden con la tabla event.
 
@@ -94,6 +74,52 @@ FOREIGN KEY (eventid) REFERENCES event (eventid)
 ON UPDATE CASCADE
 ON DELETE RESTRICT; -- Una vez hechos los cambios ya nos deja crear la FK
 
+
+CREATE TABLE sales_bakcup
+SELECT * FROM sales WHERE 1=0;
+
+INSERT INTO sales_backup
+SELECT *
+FROM sales
+WHERE eventid NOT IN (SELECT eventid FROM event);
+
+DELETE FROM sales
+WHERE eventid NOT IN (SELECT eventid FROM event);
+
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_event
+FOREIGN KEY (eventid) REFERENCES event (eventid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+
+INSERT INTO sales_backup
+SELECT *
+FROM sales
+WHERE listid NOT IN (SELECT listid FROM listing);
+
+DELETE FROM sales
+WHERE listid NOT IN (SELECT listid FROM listing);
+
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_listing
+FOREIGN KEY (listid) REFERENCES listing (listid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT; 
+
+/*Se quiere referenciar mediante buyerid y sellerid a la tabla user. Sin embargo la tabla user no contiene las columnas buyerid y sellerid
+ * 
+ */
+
+
+
+
+
+ALTER TABLE event
+ADD CONSTRAINT fk_event_venue
+FOREIGN KEY (venueid) REFERENCES venue (venueid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
 
 -- Pregunta 1.5 Revisar los comentarios en las tablas y generar dos restricciones de tipo check para controlar la integridad de los datos.
 
