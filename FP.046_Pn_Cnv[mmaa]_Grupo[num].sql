@@ -81,7 +81,42 @@ ON DELETE RESTRICT;
 
 
 -- Pregunta 1.5 Revisar los comentarios en las tablas y generar dos restricciones de tipo check para controlar la integridad de los datos.
+/*1.5.1.1 Restricción de columna "username" en tabla "users" - solo valores alfanumericos, usuario de 8 caracteres*/
+ALTER TABLE `users`
+	ADD CONSTRAINT `check_username_Alfanumerico`
+    CHECK (LENGTH(`username`) = 8 AND `username` REGEXP '^[a-z A-Z 0-9]+$'); 
+/*1.5.1.2 Para eliminar el CONSTRAINT creado*/
+ALTER TABLE `users` DROP CONSTRAINT `check_username_Alfanumerico`;	
+START TRANSACTION;
+/*1.5.1.2 Comprobación de la restricción check_username_Alfanumerico*/
+INSERT INTO `users`(userid, username)
+	VALUES (49991, '10');
+COMMIT;
+ROLLBACK;	
 
+/*1.5.2.1 Restricción de columna "venueseats" en la tabla "venue" - capacidad máxima en el recinto de 73200*/
+ALTER TABLE `venue`
+	ADD CONSTRAINT `check_venueseats_MaximoAsientos`
+    CHECK (`venueseats` >= 0 AND `venueseats` <= 73200);
+/*1.5.2.2 Debería dar error, ya que existen registros cuyo número de asientos excede 73200
+como solución se propone modificar aquellos registros con aforo superior a 73200, limitándolos a 73200*/
+START TRANSACTION;
+UPDATE venue
+	SET venueseats = 73200
+	WHERE venueseats > 73200;
+COMMIT;
+ROLLBACK;
+
+/*1.5.3.1 Restricción de columna "qtysold" en la tabla "sales", máximo de 8 tickets vendidos por lote*/
+ALTER TABLE `sales`
+	ADD CONSTRAINT `check_qtysold_maxEntradas`
+    CHECK (`qtysold` BETWEEN '1' AND '8'); /*Opciones alternativas: CHECK (`qtysold` IN ('1', '2', '3', '4', '5', '6', '7', '8')); CHECK (`qtysold` >= '1' AND `qtysold` <= '8');*/
+/*1.5.3.2 Comprobación de la restriccion `check_qtysold_maxEntradas`*/
+START TRANSACTION;
+INSERT INTO `sales`(salesid, listid, sellerid, buyerid, eventid, dateid, qtysold, pricepaid, commission, saletime)
+	VALUES (172457, 1, 1, 1, 1, 1, 10, 1.1, 1.1, '2008-06-06 03:00:16');
+COMMIT;
+ROLLBACK;
 -- Pregunta 1.6 Revisar los comentarios en las tablas y cambiar los campos que así lo requieran, por campos autocalculados.
 
 -- Pregunta 1.7 Agregar dos campos adicionales a la Base de Datos que enriquezca la información de la misma. Justificar.
@@ -138,7 +173,21 @@ END;
 * En ambos triggers se comprueba que se cumple la expresión regular definida.
 */
 
-
 -- Pregunta 1.10 Inventar una restricción que sirva de utilidad para mantener la integridad de la Base de Datos.
+/*1.10.1.1 Restricción que no permita "username" repetidos*/
+ALTER TABLE users ADD CONSTRAINT unico_username UNIQUE (username);
+/*1.10.1.2 Para eliminar la restricción*/
+ALTER TABLE users DROP CONSTRAINT unico_username;
+
+/*Restricción de columna "numtickets" tabla "listing" que no permita valores negativos*/
+ALTER TABLE `listing`
+	ADD CONSTRAINT `check_numtickets_positivos`
+    CHECK (`numtickets` >= 0);
+/*Para comprobar la restricción "check_numtickets_positivos"*/
+START TRANSACTION;
+INSERT INTO `listing`(listid, numtickets)
+	VALUES (19118, -2);
+COMMIT;
+ROLLBACK;
 
 
