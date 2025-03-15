@@ -107,13 +107,27 @@ FOREIGN KEY (listid) REFERENCES listing (listid)
 ON UPDATE CASCADE
 ON DELETE RESTRICT; 
 
-/*Se quiere referenciar mediante buyerid y sellerid a la tabla user. Sin embargo la tabla user no contiene las columnas buyerid y sellerid
- * 
+/*Se quiere referenciar mediante buyerid y sellerid a la tabla user. Sin embargo la tabla user no contiene 
+ *las columnas buyerid y sellerid, por tanto se referencian mediante userid de la tabla users. * 
  */
 
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_buyer
+FOREIGN KEY (buyerid) REFERENCES users (userid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
 
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_seller
+FOREIGN KEY (sellerid) REFERENCES users (userid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
 
-
+ALTER TABLE listing
+ADD CONSTRAINT fk_listing_seller
+FOREIGN KEY (sellerid) REFERENCES users (userid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
 
 ALTER TABLE event
 ADD CONSTRAINT fk_event_venue
