@@ -139,7 +139,7 @@ ON DELETE RESTRICT;
 
 -- Pregunta 1.6 Revisar los comentarios en las tablas y cambiar los campos que así lo requieran, por campos autocalculados.
 
-/*Después de analizar los datos de las distintas tablas, los campos que requieren esta madificación serian:
+/*Después de analizar los datos de las distintas tablas, los campos que requieren esta madificación serían:
  *'totalprice' en la tabla 'listing' 
  *'comissions' en la tabla 'sales'
  */
