@@ -12,30 +12,6 @@
 --
 -- Database: [fp_204_23]
 -- --------------------------------------------------------------
-/* Utilizar la misma numeración de preguntas de la actividad. Ejemplos: */
-
---
--- Pregunta 5.1. Indicar el número de empleados registrados en la Base de Datos.
---
-SELECT COUNT(*) AS NumeroEmpleados FROM EMPLEADO;
-
---
--- Pregunta 5.2. Mostrar todos los empleados ordenados por el departamento al cual pertenecen.
---
-SELECT d.Departamento, e.Nombre, e.Apellido1, e.Apellido2, e.DNI
-FROM DEPARTAMENTO AS d INNER JOIN EMPLEADO AS e
-ON d.pkDepartamento = e.fkDepartamento
-ORDER BY d.Departamento;
-
-/* Los comentarios a las preguntas, indicarlos en este formato después de la instrucción SQL correspondiente.
- * Ejemplo: 
- * Usamos las tablas DEPARTAMENTO y EMPLEADO
- * con el alias d y e respectivamente.
- */
-
---
--- Pregunta 5.3. etc...
---
 
 -- Pregunta 1.1 Importar las tablas y el script de control que se encuentra en los archivos .sql con el mismo nombre.
 
@@ -53,12 +29,149 @@ ADD COLUMN birthdate DATE;
 
 -- Pregunta 1.4 Relacionar las tablas de la Base de Datos tomando en cuenta aquellas columnas que tienen en su descripción el texto Referencia de clave externa a la tabla xxx.. Al crear las claves foráneas, agregar las cláusulas ON UPDATE y ON DELETE pertinentes, justificando con un comentario cada decisión, con comentarios en la plantilla.
 
+ALTER TABLE event
+ADD CONSTRAINT fk_event_category
+FOREIGN KEY (catid) REFERENCES category(catid)
+ON UPDATE CASCADE -- Si el ID en la tabla category cambia, se actualiza automáticamente en la tabla event.
+ON DELETE RESTRICT; -- Evita eliminar una categoría si está siendo referenciada por algún evento.
+
+ALTER TABLE event
+ADD CONSTRAINT fk_event_date
+FOREIGN KEY (dateid) REFERENCES date(dateid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_date
+FOREIGN KEY (dateid) REFERENCES date(dateid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+ALTER TABLE listing
+ADD CONSTRAINT fk_listing_date
+FOREIGN KEY (dateid) REFERENCES date(dateid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+/* Al intentar crear la FK en la tabla listing que hace referencia al eventid de la tabla event, nos encontramos un error porque
+ * hay registros eventid que no coinciden en ambas tablas. Para solucionarlo hacemos los siguientes pasos.
+ */
+
+CREATE TABLE listing_bakcup; -- Creamos un backup de la tabla listing para mover los registros en eventid que no coinciden con la tabla event.
+
+INSERT INTO listing_bakcup
+SELECT *
+FROM listing
+WHERE eventid NOT IN (SELECT eventid FROM event); -- Movemos todos los registros de la columna eventid en la tabla listing que no coinciden con los registros de la tabla event.
+
+DELETE FROM listing
+WHERE eventid NOT IN (SELECT eventid FROM event); -- Eliminamos los registros que hemos movido a la tabla listing_backup
+
+ALTER TABLE listing
+ADD CONSTRAINT fk_listing_event
+FOREIGN KEY (eventid) REFERENCES event (eventid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT; -- Una vez hechos los cambios ya nos deja crear la FK
+
+
+CREATE TABLE sales_bakcup;
+
+INSERT INTO sales_backup
+SELECT *
+FROM sales
+WHERE eventid NOT IN (SELECT eventid FROM event);
+
+DELETE FROM sales
+WHERE eventid NOT IN (SELECT eventid FROM event);
+
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_event
+FOREIGN KEY (eventid) REFERENCES event (eventid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+
+INSERT INTO sales_backup
+SELECT *
+FROM sales
+WHERE listid NOT IN (SELECT listid FROM listing);
+
+DELETE FROM sales
+WHERE listid NOT IN (SELECT listid FROM listing);
+
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_listing
+FOREIGN KEY (listid) REFERENCES listing (listid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT; 
+
+/*Se quiere referenciar mediante buyerid y sellerid a la tabla user. Sin embargo la tabla user no contiene 
+ *las columnas buyerid y sellerid, por tanto se referencian mediante userid de la tabla users. * 
+ */
+
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_buyer
+FOREIGN KEY (buyerid) REFERENCES users (userid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_seller
+FOREIGN KEY (sellerid) REFERENCES users (userid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+ALTER TABLE listing
+ADD CONSTRAINT fk_listing_seller
+FOREIGN KEY (sellerid) REFERENCES users (userid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+ALTER TABLE event
+ADD CONSTRAINT fk_event_venue
+FOREIGN KEY (venueid) REFERENCES venue (venueid)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
 -- Pregunta 1.5 Revisar los comentarios en las tablas y generar dos restricciones de tipo check para controlar la integridad de los datos.
+/*1.5.1.1 Restricción de columna "username" en tabla "users" - solo valores alfanumericos, usuario de 8 caracteres*/
+ALTER TABLE `users`
+	ADD CONSTRAINT `check_username_Alfanumerico`
+    CHECK (LENGTH(`username`) = 8 AND `username` REGEXP '^[a-z A-Z 0-9]+$'); 	
+
+/*1.5.2.1 Restricción de columna "venueseats" en la tabla "venue" - capacidad máxima en el recinto de 73200*/
+ALTER TABLE `venue`
+	ADD CONSTRAINT `check_venueseats_MaximoAsientos`
+    CHECK (`venueseats` >= 0 AND `venueseats` <= 73200);
+
+/*1.5.3.1 Restricción de columna "qtysold" en la tabla "sales", máximo de 8 tickets vendidos por lote*/
+ALTER TABLE `sales`
+	ADD CONSTRAINT `check_qtysold_maxEntradas`
+    CHECK (`qtysold` BETWEEN '1' AND '8'); /*Opciones alternativas: CHECK (`qtysold` IN ('1', '2', '3', '4', '5', '6', '7', '8')); CHECK (`qtysold` >= '1' AND `qtysold` <= '8');*/
 
 -- Pregunta 1.6 Revisar los comentarios en las tablas y cambiar los campos que así lo requieran, por campos autocalculados.
 
+/*Después de analizar los datos de las distintas tablas, los campos que requieren esta madificación serían:
+ *'totalprice' en la tabla 'listing' 
+ *'comissions' en la tabla 'sales'
+ */
+
+ALTER TABLE listing
+DROP COLUMN totalprice;
+
+ALTER TABLE listing
+ADD COLUMN totalprice DECIMAL(8,2) GENERATED ALWAYS AS (numtickets * priceperticket) VIRTUAL after numtickets; 
+
+ALTER TABLE sales
+DROP COLUMN comission;
+
+ALTER TABLE sales 
+ADD COLUMN commission DECIMAL(8,2) GENERATED ALWAYS AS (pricepaid * 0.15) VIRTUAL after pricepaid;
+
+/* 
 -- Pregunta 1.7 Agregar dos campos adicionales a la Base de Datos que enriquezca la información de la misma. Justificar.
-alter table `event` add column `enddate` DATETIME DEFAULT NULL;
+*/
+ALTER TABLE `event` add column `enddate` DATETIME DEFAULT NULL;
 /*
 * Agregamos el campo enddate de tipo DATETIME nulable, en la tabla event. Esto permitira guardar el instante en el que se finalizó el evento.
 * Posible uso: Analisis de datos y optimización de espacio de tiempo reservado de futuros eventos (o estimación de la duración)
@@ -134,7 +247,21 @@ END;
 * En ambos triggers se comprueba que se cumple la expresión regular definida.
 */
 
-
 -- Pregunta 1.10 Inventar una restricción que sirva de utilidad para mantener la integridad de la Base de Datos.
+/*1.10.1.1 Restricción que no permita "username" repetidos*/
+ALTER TABLE users ADD CONSTRAINT unico_username UNIQUE (username);
+/*1.10.1.2 Para eliminar la restricción*/
+ALTER TABLE users DROP CONSTRAINT unico_username;
+
+/*Restricción de columna "numtickets" tabla "listing" que no permita valores negativos*/
+ALTER TABLE `listing`
+	ADD CONSTRAINT `check_numtickets_positivos`
+    CHECK (`numtickets` >= 0);
+/*Para comprobar la restricción "check_numtickets_positivos"*/
+START TRANSACTION;
+INSERT INTO `listing`(listid, numtickets)
+	VALUES (19118, -2);
+COMMIT;
+ROLLBACK;
 
 
