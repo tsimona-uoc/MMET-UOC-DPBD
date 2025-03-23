@@ -57,8 +57,7 @@ ON DELETE RESTRICT;
  * hay registros eventid que no coinciden en ambas tablas. Para solucionarlo hacemos los siguientes pasos.
  */
 
-CREATE TABLE listing_bakcup
-SELECT * FROM listing WHERE 1=0; -- Creamos un backup de la tabla listing para mover los registros en eventid que no coinciden con la tabla event.
+CREATE TABLE listing_bakcup; -- Creamos un backup de la tabla listing para mover los registros en eventid que no coinciden con la tabla event.
 
 INSERT INTO listing_bakcup
 SELECT *
@@ -75,8 +74,7 @@ ON UPDATE CASCADE
 ON DELETE RESTRICT; -- Una vez hechos los cambios ya nos deja crear la FK
 
 
-CREATE TABLE sales_bakcup
-SELECT * FROM sales WHERE 1=0;
+CREATE TABLE sales_bakcup;
 
 INSERT INTO sales_backup
 SELECT *
