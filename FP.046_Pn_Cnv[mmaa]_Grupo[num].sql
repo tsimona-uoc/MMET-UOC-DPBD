@@ -170,8 +170,40 @@ ADD COLUMN commission DECIMAL(8,2) GENERATED ALWAYS AS (pricepaid * 0.15) VIRTUA
 
 /* 
 -- Pregunta 1.7 Agregar dos campos adicionales a la Base de Datos que enriquezca la información de la misma. Justificar.
-alter table `event` add column `enddate` DATETIME DEFAULT NULL;
+*/
+ALTER TABLE `event` add column `enddate` DATETIME DEFAULT NULL;
+/*
+* Agregamos el campo enddate de tipo DATETIME nulable, en la tabla event. Esto permitira guardar el instante en el que se finalizó el evento.
+* Posible uso: Analisis de datos y optimización de espacio de tiempo reservado de futuros eventos (o estimación de la duración)
+*/
+ALTER TABLE users ADD COLUMN total_commission DECIMAL (8, 2) DEFAULT (0.0);
+/**
+* Agregamos el campo total_comission para almacenar la comision total generada por este usuario como comprador
+*/
 
+DELIMITER //
+CREATE TRIGGER TR_UpdateCommissionOnUpdate BEFORE UPDATE ON `sales` FOR EACH ROW
+BEGIN
+UPDATE users 
+SET total_commission = (SELECT COALESCE(SUM(commission), 0) FROM sales WHERE sellerid = NEW.sellerid)
+WHERE userid = NEW.sellerid;
+END;
+
+DELIMITER //
+CREATE TRIGGER TR_UpdateCommissionOnDelete AFTER DELETE ON sales FOR EACH ROW
+BEGIN
+UPDATE users 
+SET total_commission = (SELECT COALESCE(SUM(commission), 0) FROM sales WHERE sellerid = OLD.sellerid)
+WHERE userid = OLD.sellerid;
+END;
+
+DELIMITER //
+CREATE TRIGGER TR_UpdateCommissionOnInsert BEFORE INSERT ON `sales` FOR EACH ROW
+BEGIN
+UPDATE users 
+SET total_commission = (SELECT COALESCE(SUM(commission), 0) FROM sales WHERE sellerid = NEW.sellerid)
+WHERE userid = NEW.sellerid;
+END;
 
 -- Pregunta 1.8 Crear un disparador que al actualizar el campo username de la tabla users revise si su contenido contiene mayúsculas, minúsculas, digitos y alguno de los siguientes símbolos: -_#@. De no ser así, no permitir la actualización.
 
