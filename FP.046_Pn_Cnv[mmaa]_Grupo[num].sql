@@ -168,20 +168,10 @@ DROP COLUMN comission;
 ALTER TABLE sales 
 ADD COLUMN commission DECIMAL(8,2) GENERATED ALWAYS AS (pricepaid * 0.15) VIRTUAL after pricepaid;
 
-
-
 /* 
 -- Pregunta 1.7 Agregar dos campos adicionales a la Base de Datos que enriquezca la información de la misma. Justificar.
 alter table `event` add column `enddate` DATETIME DEFAULT NULL;
-/*
-* Agregamos el campo enddate de tipo DATETIME nulable, en la tabla event. Esto permitira guardar el instante en el que se finalizó el evento.
-* Posible uso: Analisis de datos y optimización de espacio de tiempo reservado de futuros eventos (o estimación de la duración)
-*/
-alter table `users` add column birthdate DATETIME DEFAULT NULL AFTER phone;
-/*
-* Agregamos el campo birthdate de tipo DATETIME (por defecto NULL ya que no se dispone de las fechas de nacimiento) justo antes de la columna "phone".
-* Posible uso: Analisis de datos, comprobar el publico objetivo de cada evento por edades.
-*/
+
 
 -- Pregunta 1.8 Crear un disparador que al actualizar el campo username de la tabla users revise si su contenido contiene mayúsculas, minúsculas, digitos y alguno de los siguientes símbolos: -_#@. De no ser así, no permitir la actualización.
 
