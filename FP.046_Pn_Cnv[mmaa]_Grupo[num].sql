@@ -139,6 +139,26 @@ ON DELETE RESTRICT;
 
 -- Pregunta 1.6 Revisar los comentarios en las tablas y cambiar los campos que así lo requieran, por campos autocalculados.
 
+/*Después de analizar los datos de las distintas tablas, los campos que requieren esta madificación serian:
+ *'totalprice' en la tabla 'listing' 
+ *'comissions' en la tabla 'sales'
+ */
+
+ALTER TABLE listing
+DROP COLUMN totalprice;
+
+ALTER TABLE listing
+ADD COLUMN totalprice DECIMAL(8,2) GENERATED ALWAYS AS (numtickets * priceperticket) VIRTUAL after numtickets; 
+
+ALTER TABLE sales
+DROP COLUMN comission;
+
+ALTER TABLE sales 
+ADD COLUMN commission DECIMAL(8,2) GENERATED ALWAYS AS (pricepaid * 0.15) VIRTUAL after pricepaid;
+
+
+
+/* 
 -- Pregunta 1.7 Agregar dos campos adicionales a la Base de Datos que enriquezca la información de la misma. Justificar.
 alter table `event` add column `enddate` DATETIME DEFAULT NULL;
 /*
