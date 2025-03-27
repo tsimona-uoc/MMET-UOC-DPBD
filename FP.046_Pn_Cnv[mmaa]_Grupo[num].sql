@@ -2,7 +2,7 @@
 -- --------------------------------------------------------------
 -- Actividad: AAn(P1)
 --
--- Grupo: Cnv0222_Grupo06: [MMET]
+-- Grupo: Cnv[MMET]_Grupo03: 
 -- 
 -- Integrantes: 
 -- 1. Maria Ricart Martínez
