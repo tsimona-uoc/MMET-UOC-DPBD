@@ -16,8 +16,47 @@
 -- Resolver con Combinaciones Externas
 
 -- Pregunta 2.14 Crear una nueva tabla usuarios sin compras que deberá guardar aquellos usuarios que no han comprado ningún ticket con los campos userid, firstname, lastname, phone.
+
+/* Creamos la tabla de usuarios sin compras*/
+
+CREATE TABLE users_without_buys (
+	userid int,
+    firstname varchar(30),
+    lastname varchar(30),
+    phone char(14)
+    );
+
+/* Añadimos a la tabla users_without_buys los usuarios en users cuya id no coincida con buyerid */
+
+INSERT INTO users_without_buys (userid, firstname, lastname, phone)
+SELECT users.userid, users.firstname, users.lastname, users.phone
+FROM users
+LEFT JOIN sales ON users.userid = sales.buyerid
+WHERE sales.buyerid IS NULL;
+
 -- Pregunta 2.15 Crear una nueva tabla usuarios sin ventas que deberá guardar aquellos usuarios que no han vendido ningún ticket con los campos userid, firstname, lastname, phone.
+
+/* Creamos la tabla de usuarios sin ventas*/
+
+CREATE TABLE users_without_sells (
+	userid int,
+    firstname varchar(30),
+    lastname varchar(30),
+    phone char(14)
+    );
+
+/* Añadimos a la tabla users_without_sells los usuarios en users cuya id no coincida con sellerid */
+
+INSERT INTO users_without_sells (userid, firstname, lastname, phone)
+SELECT users.userid, users.firstname, users.lastname, users.phone
+FROM users
+LEFT JOIN sales ON users.userid = sales.sellerid
+WHERE sales.buyerid IS NULL;
+
+
 -- Pregunta 2.16 Mostrar una lista con todos los usuarios que no se encuentren en la tabla listing con los campos userid, firstname, lastname, phone.
+
+
 -- Pregunta 2.17 Mostrar aquellas fechas en las cuales no ha habido ningún evento. Se deberá mostrar los campos caldate y holiday
 
 -- Resolver con Subconsultas
