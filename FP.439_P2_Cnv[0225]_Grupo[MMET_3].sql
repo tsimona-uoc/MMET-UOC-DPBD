@@ -148,10 +148,28 @@ WHERE eventid = (
 
 -- Pregunta 2.22 Crea una vista con los eventos del mes de la tabla que coincida con el mes actual. Grabar la vista con el nombre Eventos del mes
 
+CREATE VIEW Eventos_del_mes AS /* Crea una vista que almacena los eventos cuyos meses coinciden con el mes actual */
+SELECT month AS Mes, event.eventname AS Nombre_del_Evento
+FROM date
+JOIN event ON date.dateid = event.dateid /* Comparamos las fechas que coinciden en ambas tablas */
+WHERE month = DATE_FORMAT(CURDATE(), '%b'); /* Extrae el mes actual como abreviatura igual al formato usado en la columna month de la tabla date */
 
 -- Pregunta 2.23 Crear una vista que muestre las ventas por trimestre y grupo de eventos. Guardar con el nombre Estadisticas
+
+CREATE VIEW Estadisticas AS
+SELECT 
+    QUARTER(saletime) AS trimestre, /* Extraemos el trimestre de la fecha en la columna saletime */
+    category.catgroup AS grupo_eventos, /* Obtenemos el grupo de categorías de eventos desde la tabla category. */
+    SUM(sales.qtysold) AS ventas_trimestre /* Calculamos el total de ventas para cada combinación de trimestre y grupo de eventos. */
+FROM sales /* Unimos las tablas sales, event y category usando sus claves correspondientes */
+JOIN event ON event.eventid = sales.eventid
+JOIN category ON event.catid = category.catid
+GROUP BY QUARTER(saletime), category.catgroup /* Agrupamos por grupo de eventos */
+ORDER BY trimestre; /* Ordenamos por trimestre */
+
 
 -- Resolver con Consultas de UNION
 
 -- Pregunta 2.24 Crear una consulta de UNION producto de las tablas usuarios sin compras y usuarios sin ventas:
--- Pregunta 2.25 Crear una consulta de UNION que en forma de tabla las columnas mes, año, 'ventas' as concepto, totalventas y a continuación mes, año, 'comisiones' as concepto, totalcomisiones. Guardarla en forma de vista con el nombre operaciones
+-- Pregunta 2.25 Crear una consulta de UNION que en forma de tabla las columnas mes, año, 'ventas' as concepto, totalventas y 
+-- a continuación mes, año, 'comisiones' as concepto, totalcomisiones. Guardarla en forma de vista con el nombre operaciones
