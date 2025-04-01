@@ -54,7 +54,6 @@ FROM users
 LEFT JOIN sales ON users.userid = sales.sellerid
 WHERE sales.sellerid IS NULL;
 
-
 -- Pregunta 2.16 Mostrar una lista con todos los usuarios que no se encuentren en la tabla listing con los campos userid, firstname, lastname, phone.
 
 /* Seleccionamos los campos que deseamos mostrar de la tabla users y lo comparamos con la tabla listing mediante LEFT JOIN
@@ -71,6 +70,7 @@ SELECT date.caldate, date.holiday
 FROM date
 LEFT JOIN event ON date.dateid = event.dateid
 WHERE event.dateid IS NULL; /* No devuelve ninguna fecha ya que en todas las fechas hubo algun evento */
+
 
 -- Resolver con Subconsultas
 
@@ -103,13 +103,52 @@ FROM category;
 -- Pregunta 2.19 Crea una consulta que calcule el precio promedio pagado por venta y la compare con el precio promedio por venta por 
 -- trimestre. La consulta deberá mostrar tres campos: trimestre, precio_promedio_por_trimestre, precio_promedio_total
 
+/* revisar porque creo que está mal */
+
+SELECT QUARTER(s.saletime) AS trimestre,
+    AVG(s.pricepaid / s.qtysold) AS precio_promedio_por_trimestre,
+    (SELECT AVG(pricepaid / qtysold) 
+     FROM sales 
+     WHERE qtysold > 0) AS precio_promedio_total
+FROM sales AS s
+WHERE s.qtysold > 0 -- Nos aseguramos de evitar divisiones por cero
+GROUP BY QUARTER(s.saletime);
 
 -- Pregunta 2.20 Muestra el total de tickets de entradas compradas de Shows y Conciertos.
+
+SELECT catgroup,
+    SUM(( /* Sumamos todos todos los resultados por categoría para que se agrupen en un único valor agregado */
+        SELECT SUM(sales.qtysold) /* Sumamos todos los tickets vendidos para obtener el total */
+        FROM sales
+        WHERE sales.eventid IN ( /* Mediante subconsulta, comparamos las ventas mediante eventid cuyo catid coincida en ambas tablas */
+            SELECT event.eventid
+            FROM event
+            WHERE event.catid = category.catid)
+    )) AS total_tickets /* Agrupamos en numero total de tickets */
+FROM category
+WHERE catgroup IN ('Shows', 'Concerts') /* Mostramos solo las categorías Shows y Conciertos */
+GROUP BY catgroup;
+
 -- Pregunta 2.21 Muestra el id, fecha, nombre del evento y localización del evento que más entradas ha vendido.
+
+SELECT eventid, starttime, eventname, (
+    SELECT venuecity /* Extraemos el nombre del lugar (venuecity) asociado al venueid de la tabla event */
+    FROM venue 
+    WHERE venue.venueid = event.venueid) AS localizacion
+FROM event
+WHERE eventid = (
+    SELECT sales.eventid
+    FROM sales
+    GROUP BY sales.eventid
+    ORDER BY SUM(sales.qtysold) DESC /* Calculamos el total de ticket vendidos segun eventid ordenamos en descendente y limitamos a 1 */
+    LIMIT 1);
+
 
 -- Resolver con Vistas
 
 -- Pregunta 2.22 Crea una vista con los eventos del mes de la tabla que coincida con el mes actual. Grabar la vista con el nombre Eventos del mes
+
+
 -- Pregunta 2.23 Crear una vista que muestre las ventas por trimestre y grupo de eventos. Guardar con el nombre Estadisticas
 
 -- Resolver con Consultas de UNION
