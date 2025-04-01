@@ -171,5 +171,28 @@ ORDER BY trimestre; /* Ordenamos por trimestre */
 -- Resolver con Consultas de UNION
 
 -- Pregunta 2.24 Crear una consulta de UNION producto de las tablas usuarios sin compras y usuarios sin ventas:
+
+SELECT * FROM users_without_buys
+UNION
+SELECT * FROM users_without_sells;
+
 -- Pregunta 2.25 Crear una consulta de UNION que en forma de tabla las columnas mes, año, 'ventas' as concepto, totalventas y 
 -- a continuación mes, año, 'comisiones' as concepto, totalcomisiones. Guardarla en forma de vista con el nombre operaciones
+
+CREATE VIEW Operaciones AS
+SELECT 
+	MONTH(saletime) AS Mes,
+    YEAR(saletime) AS Año,
+    'Ventas' AS Concepto,
+    SUM(pricepaid) AS TotalVentas
+FROM sales
+GROUP BY MONTH(saletime), YEAR(saletime)
+UNION
+SELECT
+	MONTH(saletime) AS Mes,
+    YEAR(saletime) AS Año,
+    'Comisiones' AS Concepto,
+    SUM(commission) AS TotalComisiones
+FROM sales
+GROUP BY MONTH(saletime), YEAR(saletime)
+ORDER BY Mes;
