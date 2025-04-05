@@ -106,8 +106,8 @@ FROM category;
 /* revisar porque creo que está mal */
 
 SELECT QUARTER(s.saletime) AS trimestre,
-    AVG(s.pricepaid / s.qtysold) AS precio_promedio_por_trimestre,
-    (SELECT AVG(pricepaid / qtysold) 
+    AVG(s.pricepaid) AS precio_promedio_por_trimestre,
+    (SELECT AVG(pricepaid) 
      FROM sales 
      WHERE qtysold > 0) AS precio_promedio_total
 FROM sales AS s
