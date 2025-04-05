@@ -30,7 +30,22 @@
 -- Resolver con Vistas
 
 -- Pregunta 2.22 Crea una vista con los eventos del mes de la tabla que coincida con el mes actual. Grabar la vista con el nombre Eventos del mes
+create view EventosDelMes AS select * from event where MONTH(starttime) = MONTH(CURDATE());
+-- Se selecciona el mes de cada entrada y se filtra para que ese mes sea igual al mes en el que se lanza la consulta
+
 -- Pregunta 2.23 Crear una vista que muestre las ventas por trimestre y grupo de eventos. Guardar con el nombre Estadisticas
+CREATE VIEW Estadisticas as 
+select 
+CONCAT('Q', QUARTER(s.saletime)) as Trimestre, 
+e.eventname, 
+SUM(qtysold) as CantidadVendida,
+SUM(pricepaid) as PrecioTotal
+from sales s
+inner join event e on s.eventid = e.eventid
+group by 
+CONCAT('Q', QUARTER(s.saletime)), 
+e.eventname;
+-- Se obtiene el trimestre mediante el metodo QUARTER sobre la columna "saletime", se obtiene el nombre del evento y sumatorio de cantidades e importes agrupando por trimestre y evento
 
 -- Resolver con Consultas de UNION
 
