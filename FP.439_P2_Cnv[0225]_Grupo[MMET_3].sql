@@ -103,8 +103,6 @@ FROM category;
 -- Pregunta 2.19 Crea una consulta que calcule el precio promedio pagado por venta y la compare con el precio promedio por venta por 
 -- trimestre. La consulta deberá mostrar tres campos: trimestre, precio_promedio_por_trimestre, precio_promedio_total
 
-/* revisar porque creo que está mal */
-
 SELECT QUARTER(s.saletime) AS trimestre,
     AVG(s.pricepaid) AS precio_promedio_por_trimestre,
     (SELECT AVG(pricepaid) 
