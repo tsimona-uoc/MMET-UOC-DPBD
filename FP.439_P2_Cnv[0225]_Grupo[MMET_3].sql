@@ -79,15 +79,15 @@ SELECT c.catgroup,
 COALESCE (SUM(s.qtysold), 0) AS tickets_vendidos, -- Tickets vendidos se guarda en tickets_vendidos.
 COALESCE (SUM(l.numtickets), 0) - COALESCE(SUM(s.qtysold)) AS tickets_sin_vender -- diferencia entre tickets totales y tickets vendidos nos da tickets sin vender.
 FROM category c 
-LEFT JOIN event e ON e.catid = c.catid -- Se une evento con categoria la columna común es catid
-LEFT JOIN listing l ON l.eventid = e.eventid -- Se uen listing con evento la columna común es eventid
-LEFT JOIN sales s ON e.eventid = s.eventid -- Se une sales con event la columna comun es eventid.
-GROUP BY c.catgroup -- Los datos se agrupan por categoria de evento
+LEFT JOIN event e ON e.catid = c.catid -- Se une tabla evento con tabla categoria, la columna común es catid
+LEFT JOIN listing l ON l.eventid = e.eventid -- Se une tabla listing con tabla evento, la columna común es eventid
+LEFT JOIN sales s ON e.eventid = s.eventid -- Se une tabla sales con tabla event, la columna comun es eventid.
+GROUP BY c.catgroup -- Los datos se agrupan por categoria de evento.
 ORDER BY tickets_vendidos DESC; -- Los datos se ordenan por tickets vendidos. 
 
 -- Pregunta 2.19 Crea una consulta que calcule el precio promedio pagado por venta y la compare con el precio promedio por venta por trimestre. La consulta deberá mostrar tres campos: trimestre, precio_promedio_por_trimestre, precio_promedio_total
 SELECT 
-CONCAT(YEAR(s.saletime), 'Trimestre', QUARTER(s.saletime)) AS trimestre,
+CONCAT(YEAR(s.saletime), 'Trimestre', QUARTER(s.saletime)) AS trimestre,  
 ROUND(AVG(s.pricepaid), 2) AS precio_promedio_por_trimestre,
 (SELECT ROUND(AVG(pricepaid), 2) FROM sales) AS precio_promedio_total
 FROM sales s
@@ -99,7 +99,7 @@ ORDER BY YEAR(s.saletime), QUARTER(s.saletime);
 SELECT c.catgroup, -- 
 COALESCE (SUM(s.qtysold), 0) AS tickets_vendidos -- se obtiene la suma de todos los tickets vendidos.
 FROM category c 
-LEFT JOIN event e ON e.catid = c.catid -- Se une evento 
+LEFT JOIN event e ON e.catid = c.catid -- Se une tabla evento con tabla categoria, la columna común es catid
 LEFT JOIN sales s ON e.eventid = s.eventid
 WHERE c.catgroup IN ('Concerts', 'Shows')
 GROUP BY c.catgroup
