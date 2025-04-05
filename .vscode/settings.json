@@ -1,0 +1,32 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "Proyecto 1",
+            "database": "evarishtu",
+            "username": "root",
+            "askForPassword": true
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "icx0p32.cu5so1xdpnd5.eu-west-1.rds.amazonaws.com",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "MMET",
+            "database": "fp_204_23",
+            "username": "fp_204_23",
+            "askForPassword": true
+        }
+    ]
+}
