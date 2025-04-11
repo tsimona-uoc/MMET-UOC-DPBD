@@ -35,11 +35,44 @@ ORDER BY d.week; /* Se ordena la salida por semana*/
 -- del usuario, de lo contrario es un visitante.
 -- Utilizar la función IF y agrupar.
 
+SELECT CONCAT(e.eventid, e.eventname) AS 'Evento',
+    SUM(IF(v.venuecity = u.city, 1, 0)) AS 'Asistentes Locales',
+    SUM(IF(v.venuecity <> u.city, 1, 0)) AS 'Visitantes'
+FROM event e
+JOIN venue v ON e.venueid = v.venueid
+JOIN sales s ON e.eventid = s.eventid
+JOIN users u ON s.buyerid = u.userid
+JOIN date d ON e.dateid = d.dateid
+WHERE WEEK(d.week) = 9
+GROUP BY e.eventid, e.eventname
+ORDER BY e.eventid;
 
 -- Pregunta 3.11 Eliminar de la tabla users a todos aquellos usuarios registrados que no hayan comprado ni vendido 
 -- ninguna entrada. Antes de eliminarlos, copiarlos a una tabla denominada backup_users para poder recuperarlos en caso 
 -- de ser necesario.
 
+-- Como se hace esta consulta con funciones codicionales???
+
+CREATE TABLE users_backup LIKE users;
+
+INSERT INTO users_backup
+SELECT *
+FROM users
+WHERE userid IN (
+    SELECT ub.userid
+    FROM users_without_buys ub
+    INNER JOIN users_without_sells us ON ub.userid = us.userid);
+
+/*Me sale error porque dice que hay usuarios en users_without_sells que estan en listing como fk y no deberia ser asi*/
+
+DELETE FROM users
+WHERE userid IN (
+    SELECT userid FROM (
+        SELECT ub.userid
+        FROM users_without_buys ub
+        INNER JOIN users_without_sells us ON ub.userid = us.userid
+    ) AS temp
+);
 -- Pregunta 3.12 Mostrar una lista de usuarios donde se especifique para cada usuario si éste es un comprador 
 -- (sólo ha comprado entradas), un vendedor (sólo ha vendido entradas) o ambos.
 -- La salida de la consulta deberá ser la siguiente. Utilizar la función CASE y agrupar. 
