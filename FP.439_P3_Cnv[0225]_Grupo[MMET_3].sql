@@ -20,6 +20,16 @@
 -- El listado deberá mostrar los siguientes campos, y estar ordenado por las semanas del mes (week):
 -- eventid, eventname, caldate, week, coincideSemana (sí/no).
 
+SELECT e.eventid, e.eventname, d.caldate, d.week,
+    CASE 
+         WHEN d.week = WEEK(CURRENT_DATE()) THEN 'Si' /*Compara el valor week en la tabla date con la semana actual*/
+         ELSE 'No'
+    END AS coincideSemana
+FROM event e
+JOIN date d ON e.dateid = d.dateid /* Se unen ambas tablas a través de la clave dateid*/
+WHERE MONTH(d.caldate) = MONTH(CURRENT_DATE()) /*Se muestran solo los eventos cuyo mes (extraído de caldate) coincide con el mes actual.*/
+ORDER BY d.week; /* Se ordena la salida por semana*/
+
 -- Pregunta 3.10 Mostrar cuántos usuarios que han comprado entradas para los eventos de la semana 9 son "locales". 
 -- Se considera que un usuario es local, si el nombre de la ciudad donde se realiza el evento es igual a la ciudad natal 
 -- del usuario, de lo contrario es un visitante.
