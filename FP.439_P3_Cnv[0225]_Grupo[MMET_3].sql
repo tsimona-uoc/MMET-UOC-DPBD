@@ -26,7 +26,7 @@ SELECT e.eventid, e.eventname, d.caldate, d.week,
          ELSE 'No'
     END AS coincideSemana
 FROM event e
-JOIN date d ON e.dateid = d.dateid /* Se unen ambas tablas a través de la clave dateid*/
+JOIN date d ON e.dateid = d.dateid /*Se unen ambas tablas a través de la clave dateid*/
 WHERE MONTH(d.caldate) = MONTH(CURRENT_DATE()) /*Se muestran solo los eventos cuyo mes (extraído de caldate) coincide con el mes actual.*/
 ORDER BY d.week; /* Se ordena la salida por semana*/
 
@@ -35,17 +35,18 @@ ORDER BY d.week; /* Se ordena la salida por semana*/
 -- del usuario, de lo contrario es un visitante.
 -- Utilizar la función IF y agrupar.
 
-SELECT CONCAT(e.eventid, e.eventname) AS 'Evento',
-    SUM(IF(v.venuecity = u.city, 1, 0)) AS 'Asistentes Locales',
-    SUM(IF(v.venuecity <> u.city, 1, 0)) AS 'Visitantes'
-FROM event e
-JOIN venue v ON e.venueid = v.venueid
-JOIN sales s ON e.eventid = s.eventid
-JOIN users u ON s.buyerid = u.userid
-JOIN date d ON e.dateid = d.dateid
-WHERE WEEK(d.week) = 9
-GROUP BY e.eventid, e.eventname
-ORDER BY e.eventid;
+SELECT CONCAT(e.eventid, e.eventname) AS 'Evento', /*Concatenación de 'eventid' y 'eventname' para crear una columna que identifica los eventos de forma descriptiva.*/
+    SUM(IF(v.venuecity = u.city, 1, 0)) AS 'Asistentes Locales', /*Calcula el total de asistentes locales. Si la ciudad del lugar (venue) coincide con la ciudad del usuario, suma 1; de lo contrario, suma 0.*/
+    SUM(IF(v.venuecity <> u.city, 1, 0)) AS 'Visitantes' /*Calcula el total de asistentes visitantes. Si la ciudad del lugar es diferente de la ciudad del usuario, suma 1; de lo contrario, suma 0.*/
+FROM event e 
+JOIN venue v ON e.venueid = v.venueid /*Une la tabla de eventos con la tabla de lugares usando el 'venueid', que relaciona el evento con su lugar*/
+JOIN sales s ON e.eventid = s.eventid /*Une la tabla de eventos con la tabla de ventas para saber quién compró entradas para un evento específico*/
+JOIN users u ON s.buyerid = u.userid /*Une la tabla de ventas con la tabla de usuarios para acceder a la información de cada comprador (por ejemplo, su ciudad).*/
+JOIN date d ON e.dateid = d.dateid /*Une la tabla de eventos con la tabla de fechas para filtrar eventos según la semana específica.*/
+WHERE WEEK(d.week) = 9 /*Filtra los eventos que ocurrieron en la semana número 9.*/
+GROUP BY e.eventid, e.eventname /*Agrupa los resultados por cada evento, identificándolos mediante su ID y nombre.*/
+ORDER BY e.eventid; /*Ordena los resultados por 'eventid' para facilitar la lectura en orden ascendente.*/
+
 
 -- Pregunta 3.11 Eliminar de la tabla users a todos aquellos usuarios registrados que no hayan comprado ni vendido 
 -- ninguna entrada. Antes de eliminarlos, copiarlos a una tabla denominada backup_users para poder recuperarlos en caso 
@@ -92,18 +93,34 @@ WHERE userid IN (
 
 SELECT u.userid, u.username, u.firstname, u.lastname,
     CASE 
-        WHEN COUNT(DISTINCT s.buyerid) > 0 AND COUNT(DISTINCT l.sellerid) = 0 THEN 'Comprador'
-        WHEN COUNT(DISTINCT s.buyerid) = 0 AND COUNT(DISTINCT l.sellerid) > 0 THEN 'Vendedor'
-        WHEN COUNT(DISTINCT s.buyerid) > 0 AND COUNT(DISTINCT l.sellerid) > 0 THEN 'Ambos'
-        ELSE 'Ninguno'
-    END AS rol
-FROM users u
-LEFT JOIN sales s ON u.userid = s.buyerid
-LEFT JOIN listing l ON u.userid = l.sellerid
-GROUP BY u.userid, u.username, u.firstname, u.lastname;
+        WHEN COUNT(DISTINCT s.buyerid) > 0 AND COUNT(DISTINCT l.sellerid) = 0 THEN 'Comprador' /*Evalúa si el usuario ha comprado entradas pero no ha vendido ninguna. Si cumple, asigna el rol "Comprador".*/
+        WHEN COUNT(DISTINCT s.buyerid) = 0 AND COUNT(DISTINCT l.sellerid) > 0 THEN 'Vendedor' /*Evalúa si el usuario ha vendido entradas pero no ha comprado ninguna. Si cumple, asigna el rol "Vendedor".*/
+        WHEN COUNT(DISTINCT s.buyerid) > 0 AND COUNT(DISTINCT l.sellerid) > 0 THEN 'Ambos' /*Evalúa si el usuario ha comprado y vendido entradas. Si cumple, asigna el rol "Ambos".*/
+        ELSE 'Ninguno' /*Asigna el rol "Ninguno" si el usuario no ha comprado ni vendido entradas.*/
+    END AS rol /*El resultado del bloque CASE se asigna a la columna `rol`, que indica el rol del usuario.*/
+FROM users u 
+LEFT JOIN sales s ON u.userid = s.buyerid /*Realiza una unión izquierda con la tabla `sales`, para vincular usuarios que hayan comprado entradas.*/
+LEFT JOIN listing l ON u.userid = l.sellerid /*Realiza una unión izquierda con la tabla `listing`, para vincular usuarios que hayan vendido entradas.*/
+GROUP BY u.userid, u.username, u.firstname, u.lastname; /*Agrupa los resultados por cada usuario único para aplicar correctamente las funciones agregadas (COUNT).*/
+
 
 -- Pregunta 3.13 Inventar una consulta que haga uso de una de las siguientes funciones: COALESCE, IFNULL, NULLIF.
 -- Explicar su objetivo en los comentarios de la plantilla .sql
+
+-- Objetivo: La función COALESCE devuelve el primer valor no nulo de una lista de columnas o valores.
+-- En este caso, queremos mostrar el número de teléfono de cada usuario. 
+-- Si un usuario no tiene teléfono registrado, mostramos un valor alternativo: 'Teléfono no disponible'.
+
+SELECT userid, username,
+    COALESCE(phone, 'Teléfono no disponible') AS contact_info
+FROM users;
+
+-- Objetivo: IFNULL verifica si un valor es NULL y, si lo es, devuelve un valor alternativo.
+-- Aquí mostramos el correo electrónico del usuario o 'Correo no disponible' si está vacío.
+
+SELECT userid, username,
+    IFNULL(email, 'Correo no disponible') AS email_info
+FROM users;
 
 
 -- Funciones UDF
@@ -114,12 +131,61 @@ GROUP BY u.userid, u.username, u.firstname, u.lastname;
 -- literal, por ejemplo escribir:
 -- SELECT NombreResumido("Rita", "de la Torre") para probar la función, deberá devolver: R. DE LA TORRE.
 
+DELIMITER $$ /*Cambia el delimitador estándar (;) al delimitador $$. Esto es necesario para definir bloques como funciones y procedimientos en MySQL.*/
+
+CREATE FUNCTION NombreResumido(nombre VARCHAR(255), apellido VARCHAR(255)) /*Crea una función llamada NombreResumido*/
+RETURNS VARCHAR(255)
+DETERMINISTIC /*Especifica que la función es determinística, lo que significa que siempre devolverá el mismo resultado para los mismos parámetros de entrada.*/
+BEGIN
+    /*Concatenar la inicial del nombre, un punto y el apellido en mayúsculas*/
+    RETURN CONCAT(UCASE(LEFT(nombre, 1)), '. ', UCASE(apellido)); /*Obtiene la inicial del 'nombre' (LEFT), la convierte a mayúscula (UCASE), y concatena con un punto y el 'apellido' convertido a mayúsculas.*/
+END$$ /*Fin de la definición de la función.*/
+DELIMITER ; /*Restaura el delimitador estándar (;).*/
+
+-- Probamos con nuestro nombre
+
+SELECT NombreResumido("Marius", "Ciurana") AS Nombre_Resumido;
+
+-- Probamos con la tabla users
+
+SELECT userid, username, NombreResumido(username, firstname) AS Nombre_Resumido 
+FROM users; 
+
+
 -- Pregunta 3.15 Actualizar el campo VIP de la tabla de usuarios a sí a aquellos usuarios que hayan comprado 
 -- más de 10 tickets para los eventos o aquellos que hayan vendido más de 25 tickets.
+
+ALTER TABLE users
+ADD COLUMN VIP VARCHAR(3) DEFAULT 'No';
+
+
+-- Actualizar el campo VIP para los usuarios que hayan comprado más de 10 tickets o vendido más de 25 tickets
+UPDATE users u
+SET u.VIP = 'Sí'
+WHERE u.userid IN (
+    -- Usuarios que han comprado más de 10 tickets
+    SELECT s.buyerid
+    FROM sales s
+    GROUP BY s.buyerid
+    HAVING COUNT(s.qtysold) > 10
+)
+OR u.userid IN (
+    -- Usuarios que han vendido más de 25 tickets
+    SELECT l.sellerid
+    FROM listing l
+    GROUP BY l.sellerid
+    HAVING COUNT(l.numtickets) > 25
+);
+
+SELECT userid, username, VIP
+FROM users
+WHERE VIP = 'Sí';
 
 -- Pregunta 3.16 Crear una función UDF llamada Pases_cortesía. Se regalará 1 pase de cortesía por cada 10 tickets comprados
 -- o vendidos, a los usuarios VIP. Hacer una consulta denominada pases_usuarios para probar la función y guardarla como 
 -- una vista. Los campos de la misma deberán ser: userid, username, NombreResumido, número de pases.
+
+
 
 -- Pregunta 3.17 La siguiente instrucción:
 
