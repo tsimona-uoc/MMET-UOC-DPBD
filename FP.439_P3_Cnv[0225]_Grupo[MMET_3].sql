@@ -148,7 +148,7 @@ SELECT NombreResumido("Marius", "Ciurana") AS Nombre_Resumido;
 
 -- Probamos con la tabla users
 
-SELECT userid, username, NombreResumido(username, firstname) AS Nombre_Resumido 
+SELECT userid, username, NombreResumido(firstname, lastname) AS Nombre_Resumido 
 FROM users; 
 
 
@@ -167,15 +167,14 @@ WHERE u.userid IN (
     SELECT s.buyerid
     FROM sales s
     GROUP BY s.buyerid
-    HAVING COUNT(s.qtysold) > 10
+    HAVING SUM(s.qtysold) > 10
 )
 OR u.userid IN (
     -- Usuarios que han vendido más de 25 tickets
     SELECT l.sellerid
-    FROM listing l
-    GROUP BY l.sellerid
-    HAVING COUNT(l.numtickets) > 25
-);
+	FROM listing l
+	GROUP BY l.sellerid
+	HAVING SUM(l.numtickets) > 25);
 
 SELECT userid, username, VIP
 FROM users
@@ -185,7 +184,33 @@ WHERE VIP = 'Sí';
 -- o vendidos, a los usuarios VIP. Hacer una consulta denominada pases_usuarios para probar la función y guardarla como 
 -- una vista. Los campos de la misma deberán ser: userid, username, NombreResumido, número de pases.
 
+/*Se crea la función*/
+DELIMITER $$
 
+CREATE FUNCTION Pases_cortesía(ticket_count INT)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    -- Calcula el número de pases de cortesía basado en el total de tickets
+    RETURN FLOOR(ticket_count / 10);
+END$$
+
+DELIMITER ;
+
+/*Se crea la vista a raíz de la consulta*/
+CREATE VIEW pases_usuarios AS
+SELECT u.userid, u.username, NombreResumido(u.firstname, u.lastname) AS NombreResumido,
+    Pases_cortesía( /*Se aplica la función creada pase_cortesía*/
+        IFNULL(SUM(s.qtysold), 0) + IFNULL(SUM(l.numtickets), 0)
+    ) AS num_pases
+FROM users u
+LEFT JOIN sales s ON u.userid = s.buyerid -- Relaciona las compras de tickets
+LEFT JOIN listing l ON u.userid = l.sellerid -- Relaciona las ventas de tickets
+WHERE u.VIP = 'Sí' -- Solo aplica a usuarios VIP
+GROUP BY u.userid, u.username, u.firstname, u.lastname;
+
+/*Comprobamos la consulta para ver si funciona*/
+SELECT * FROM pases_usuarios;
 
 -- Pregunta 3.17 La siguiente instrucción:
 
@@ -200,6 +225,15 @@ concat(
 -- en el rango 1998-1940, y los días entre 1 y 28).
 -- Sintaxis: select floor(rand()*(end - start) + start);
 -- Actualizar el campo birthdate de la tabla users, creado en el P1.
+
+UPDATE users
+SET birthdate = STR_TO_DATE(
+    CONCAT(
+        FLOOR(1 + RAND() * (12 - 1)), '-', -- Mes aleatorio entre 1 y 12
+        FLOOR(1 + RAND() * (28 - 1)), '-', -- Día aleatorio entre 1 y 28
+        FLOOR(1940 + RAND() * (1998 - 1940))), '%m-%d-%Y'); -- Año aleatorio entre 1940 y 1998
+
+
 
 -- Pregunta 3.18 Crear una función UDF llamada Kit_Eventos. Se regalará un kit a aquellos usuarios VIP que cumplan años 
 -- durante el mes (que recibirá la función por parámetro). La función devolverá "Kit" o "-". Hacer una consulta pertinente
