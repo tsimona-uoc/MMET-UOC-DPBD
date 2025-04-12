@@ -63,7 +63,20 @@ WHERE userid IN (
     FROM users_without_buys ub
     INNER JOIN users_without_sells us ON ub.userid = us.userid);
 
-/*Me sale error porque dice que hay usuarios en users_without_sells que estan en listing como fk y no deberia ser asi*/
+/*Me sale error porque dice que hay usuarios en users_without_sells que estan en listing como fk ya que había usuarios
+  cuyo sellerid estaba en la tabla listing pero no en la tabla sales. Se ha creado otra tabla listing_backup_2 para mover
+  aquellos usuarios que tiene sellerid en la tabla listing pero no están en la tabla sales*/
+
+create table listing_backup_2 like listing_backup;
+
+insert into listing_backup_2
+select *
+from listing
+where sellerid not in (select sellerid from sales);
+
+delete
+from listing
+where sellerid not in (select sellerid from sales);
 
 DELETE FROM users
 WHERE userid IN (
@@ -77,6 +90,17 @@ WHERE userid IN (
 -- (sólo ha comprado entradas), un vendedor (sólo ha vendido entradas) o ambos.
 -- La salida de la consulta deberá ser la siguiente. Utilizar la función CASE y agrupar. 
 
+SELECT u.userid, u.username, u.firstname, u.lastname,
+    CASE 
+        WHEN COUNT(DISTINCT s.buyerid) > 0 AND COUNT(DISTINCT l.sellerid) = 0 THEN 'Comprador'
+        WHEN COUNT(DISTINCT s.buyerid) = 0 AND COUNT(DISTINCT l.sellerid) > 0 THEN 'Vendedor'
+        WHEN COUNT(DISTINCT s.buyerid) > 0 AND COUNT(DISTINCT l.sellerid) > 0 THEN 'Ambos'
+        ELSE 'Ninguno'
+    END AS rol
+FROM users u
+LEFT JOIN sales s ON u.userid = s.buyerid
+LEFT JOIN listing l ON u.userid = l.sellerid
+GROUP BY u.userid, u.username, u.firstname, u.lastname;
 
 -- Pregunta 3.13 Inventar una consulta que haga uso de una de las siguientes funciones: COALESCE, IFNULL, NULLIF.
 -- Explicar su objetivo en los comentarios de la plantilla .sql
