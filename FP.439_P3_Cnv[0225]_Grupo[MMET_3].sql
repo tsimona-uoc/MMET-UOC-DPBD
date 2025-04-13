@@ -279,9 +279,26 @@ WHERE VIP = 'Sí' AND MONTH(birthdate) = MONTH(CURRENT_DATE()); -- Filtra solo u
 -- Pregunta 3.20 Hacer una vista llamada cumpleanhos. La consulta de la vista, deberá tener los siguientes campos:
 -- userid, username, NombreResumido, VIP, dia, mes, birthdate
 
+CREATE VIEW cumpleanhos AS
+SELECT userid, username, NombreResumido(firstname, lastname) AS NombreResumido, VIP, DAY(birthdate) AS dia, MONTH(birthdate) AS mes, birthdate
+FROM users;
+
+SELECT * FROM cumpleanhos;
+
 -- Pregunta 3.21 Crear dos variables de usuario. Una denominada @esVIP y la otra @monthbirthday.
 -- Asignar un valor a la variable @esVIP (true / false).
 -- Asignar el valor del mes en curso a la variable @monthbirthday
 
+-- Crear y asignar un valor a la variable @esVIP
+SET @esVIP = 'Sí'; -- Puedes asignar 'Sí' o 'No' según el formato de tu columna VIP.
+
+-- Crear y asignar el valor del mes actual a la variable @monthbirthday
+SET @monthbirthday = MONTH(CURRENT_DATE()); -- Asigna el mes actual en formato numérico.
+
 -- Pregunta 3.22 Hacer una consulta basada en la vista cumpleanhos que utilice las variables de usuario para filtrar los 
 -- cumpleañeros del mes en @monthbirthday cuyo valor en el campo VIP coincida con el asignado a la variable @esVIP.
+
+-- Consulta basada en la vista cumpleanhos
+SELECT userid, username, NombreResumido, VIP, dia, mes, birthdate
+FROM cumpleanhos
+WHERE VIP = @esVIP AND mes = @monthbirthday;
