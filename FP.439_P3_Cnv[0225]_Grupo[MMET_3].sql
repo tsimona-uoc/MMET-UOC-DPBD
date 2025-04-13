@@ -239,6 +239,38 @@ SET birthdate = STR_TO_DATE(
 -- durante el mes (que recibirá la función por parámetro). La función devolverá "Kit" o "-". Hacer una consulta pertinente
 -- para probar la función.
 
+DELIMITER $$
+
+CREATE FUNCTION Kit_Eventos(Birthdate DATE, Mes_actual INT)
+RETURNS VARCHAR(20)
+DETERMINISTIC
+BEGIN
+    -- Declaramos la variable 'Resultado' que almacenará el valor de retorno.
+    DECLARE Resultado VARCHAR(20);
+    
+    -- Verificamos si el mes de la fecha de nacimiento del usuario coincide con el mes actual.
+    IF MONTH(Birthdate) = Mes_actual THEN
+        -- Si el mes coincide, asignamos 'Kit' como valor de retorno.
+        SET Resultado = 'Kit';
+    ELSE
+        -- Si el mes no coincide, asignamos '-' como valor de retorno.
+        SET Resultado = '-';
+    END IF;
+
+    -- Devolvemos el resultado de la evaluación.
+    RETURN Resultado;
+END $$
+
+DELIMITER ;
+
+
+SELECT 
+    firstname, birthdate, VIP,                       
+    Kit_Eventos(birthdate, MONTH(CURRENT_DATE())) AS Resultado -- Llama a la función 'Kit_Eventos' para determinar si el usuario recibe un kit.
+FROM users
+WHERE VIP = 'Sí' AND MONTH(birthdate) = MONTH(CURRENT_DATE()); -- Filtra solo usuarios VIP que cumplen años en el mes actual.
+
+
 -- Pregunta 3.19 Inventar una función UDF que permita optimizar las operaciones de la Base de Datos. Justificarla.
 
 
