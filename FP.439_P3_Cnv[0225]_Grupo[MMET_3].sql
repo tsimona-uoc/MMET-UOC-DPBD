@@ -43,7 +43,7 @@ JOIN venue v ON e.venueid = v.venueid /*Une la tabla de eventos con la tabla de 
 JOIN sales s ON e.eventid = s.eventid /*Une la tabla de eventos con la tabla de ventas para saber quién compró entradas para un evento específico*/
 JOIN users u ON s.buyerid = u.userid /*Une la tabla de ventas con la tabla de usuarios para acceder a la información de cada comprador (por ejemplo, su ciudad).*/
 JOIN date d ON e.dateid = d.dateid /*Une la tabla de eventos con la tabla de fechas para filtrar eventos según la semana específica.*/
-WHERE WEEK(d.week) = 9 /*Filtra los eventos que ocurrieron en la semana número 9.*/
+WHERE d.week = 9 /*Filtra los eventos que ocurrieron en la semana número 9.*/
 GROUP BY e.eventid, e.eventname /*Agrupa los resultados por cada evento, identificándolos mediante su ID y nombre.*/
 ORDER BY e.eventid; /*Ordena los resultados por 'eventid' para facilitar la lectura en orden ascendente.*/
 
