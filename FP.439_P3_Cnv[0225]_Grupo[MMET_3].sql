@@ -30,6 +30,28 @@
 -- ninguna entrada. Antes de eliminarlos, copiarlos a una tabla denominada backup_users para poder recuperarlos en caso 
 -- de ser necesario.
 
+START TRANSACTION; 
+
+CREATE TABLE IF NOT EXISTS backup_users AS
+SELECT * FROM users WHERE 1 = 0;
+
+SELECT*
+FROM backup_users;
+
+INSERT INTO backup_users
+SELECT *
+FROM users
+WHERE userid IN (
+    SELECT userid
+    FROM users_without_buys
+    WHERE userid IN (SELECT userid FROM users_without_sells)
+);
+
+DELETE FROM users
+WHERE userid IN (
+    SELECT userid FROM backup_users
+);
+
 -- Pregunta 3.12 Mostrar una lista de usuarios donde se especifique para cada usuario si éste es un comprador 
 -- (sólo ha comprado entradas), un vendedor (sólo ha vendido entradas) o ambos.
 -- La salida de la consulta deberá ser la siguiente. Utilizar la función CASE y agrupar. 
@@ -49,6 +71,26 @@
 
 -- Pregunta 3.15 Actualizar el campo VIP de la tabla de usuarios a sí a aquellos usuarios que hayan comprado 
 -- más de 10 tickets para los eventos o aquellos que hayan vendido más de 25 tickets.
+START TRANSACTION;
+
+ALTER TABLE users
+ADD COLUMN VIP VARCHAR(3) DEFAULT 'no';
+
+UPDATE users
+SET VIP = 'sí'
+WHERE userid IN (
+    SELECT buyerid
+    FROM sales
+    GROUP BY buyerid
+    HAVING COUNT(*) > 10
+
+    UNION
+
+    SELECT userid
+    FROM listing
+    GROUP BY userid
+    HAVING COUNT(*) > 25
+);
 
 -- Pregunta 3.16 Crear una función UDF llamada Pases_cortesía. Se regalará 1 pase de cortesía por cada 10 tickets comprados
 -- o vendidos, a los usuarios VIP. Hacer una consulta denominada pases_usuarios para probar la función y guardarla como 
@@ -74,7 +116,6 @@ concat(
 
 -- Pregunta 3.19 Inventar una función UDF que permita optimizar las operaciones de la Base de Datos. Justificarla.
 
-
 -- Variables de @usuario
 
 -- Pregunta 3.20 Hacer una vista llamada cumpleanhos. La consulta de la vista, deberá tener los siguientes campos:
@@ -83,6 +124,12 @@ concat(
 -- Pregunta 3.21 Crear dos variables de usuario. Una denominada @esVIP y la otra @monthbirthday.
 -- Asignar un valor a la variable @esVIP (true / false).
 -- Asignar el valor del mes en curso a la variable @monthbirthday
+
+SET @monthbirthday = MONTH(CURRENT_DATE());
+SET @esVIP = TRUE;
+
+SELECT @esVIP AS esVIP, @monthbirthday AS mes_cumple;
+
 
 -- Pregunta 3.22 Hacer una consulta basada en la vista cumpleanhos que utilice las variables de usuario para filtrar los 
 -- cumpleañeros del mes en @monthbirthday cuyo valor en el campo VIP coincida con el asignado a la variable @esVIP.
