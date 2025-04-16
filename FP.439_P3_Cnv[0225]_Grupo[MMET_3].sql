@@ -20,6 +20,17 @@
 -- El listado deberá mostrar los siguientes campos, y estar ordenado por las semanas del mes (week):
 -- eventid, eventname, caldate, week, coincideSemana (sí/no).
 
+SELECT e.eventid, e.eventname, d.caldate, d.week,
+    CASE 
+         WHEN d.week = WEEK(CURRENT_DATE()) THEN 'Si' /*Compara el valor week en la tabla date con la semana actual*/
+         ELSE 'No'
+    END AS coincideSemana
+FROM event e
+JOIN date d ON e.dateid = d.dateid /*Se unen ambas tablas a través de la clave dateid*/
+WHERE MONTH(d.caldate) = MONTH(CURRENT_DATE()) /*Se muestran solo los eventos cuyo mes (extraído de caldate) coincide con el mes actual.*/
+ORDER BY d.week; /* Se ordena la salida por semana*/
+
+
 -- Pregunta 3.10 Mostrar cuántos usuarios que han comprado entradas para los eventos de la semana 9 son "locales". 
 -- Se considera que un usuario es local, si el nombre de la ciudad donde se realiza el evento es igual a la ciudad natal 
 -- del usuario, de lo contrario es un visitante.
@@ -53,6 +64,18 @@ group by u.userid, u.username, u.firstname, u.lastname;
 
 -- Pregunta 3.13 Inventar una consulta que haga uso de una de las siguientes funciones: COALESCE, IFNULL, NULLIF.
 -- Explicar su objetivo en los comentarios de la plantilla .sql
+
+SELECT userid, username,
+    COALESCE(phone, 'Teléfono no disponible') AS contact_info
+FROM users;
+
+-- Objetivo: IFNULL verifica si un valor es NULL y, si lo es, devuelve un valor alternativo.
+-- Aquí mostramos el correo electrónico del usuario o 'Correo no disponible' si está vacío.
+
+SELECT userid, username,
+    IFNULL(email, 'Correo no disponible') AS email_info
+FROM users;
+
 
 
 -- Funciones UDF
@@ -108,6 +131,14 @@ concat(
    floor(1 + rand() * (28-1)), '-',
    floor(1 + rand() * (1998-1940) + 1940)),'%m-%d-%Y');*/
 
+
+UPDATE users
+SET birthdate = STR_TO_DATE(
+    CONCAT(
+        FLOOR(1 + RAND() * (12 - 1)), '-', -- Mes aleatorio entre 1 y 12
+        FLOOR(1 + RAND() * (28 - 1)), '-', -- Día aleatorio entre 1 y 28
+        FLOOR(1940 + RAND() * (1998 - 1940))), '%m-%d-%Y'); -- Año aleatorio entre 1940 y 1998
+
 -- permite actualizar un campo fecha de una tabla con fechas aleatorias (en este caso el año de nacimiento estaría 
 -- en el rango 1998-1940, y los días entre 1 y 28).
 -- Sintaxis: select floor(rand()*(end - start) + start);
@@ -141,9 +172,6 @@ CREATE VIEW cumpleanhos AS
 );
 
 
-
-
-
 -- Pregunta 3.21 Crear dos variables de usuario. Una denominada @esVIP y la otra @monthbirthday.
 -- Asignar un valor a la variable @esVIP (true / false).
 -- Asignar el valor del mes en curso a la variable @monthbirthday
@@ -154,3 +182,6 @@ set @monthbirthday = MONTH(curdate());
 
 -- Pregunta 3.22 Hacer una consulta basada en la vista cumpleanhos que utilice las variables de usuario para filtrar los 
 -- cumpleañeros del mes en @monthbirthday cuyo valor en el campo VIP coincida con el asignado a la variable @esVIP.
+SELECT userid, username, NombreResumido, VIP, dia, mes, birthdate
+FROM cumpleanhos
+WHERE VIP = @esVIP AND mes = @monthbirthday;
