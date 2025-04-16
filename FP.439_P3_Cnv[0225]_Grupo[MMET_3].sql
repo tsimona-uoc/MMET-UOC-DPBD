@@ -36,6 +36,18 @@ ORDER BY d.week; /* Se ordena la salida por semana*/
 -- del usuario, de lo contrario es un visitante.
 -- Utilizar la función IF y agrupar.
 
+SELECT CONCAT(e.eventid, ' ', e.eventname) AS 'Evento', /*Concatenación de 'eventid' y 'eventname' para crear una columna que identifica los eventos de forma descriptiva.*/
+    SUM(IF(v.venuecity = u.city, 1, 0)) AS 'Asistentes Locales', /*Calcula el total de asistentes locales. Si la ciudad del lugar (venue) coincide con la ciudad del usuario, suma 1; de lo contrario, suma 0.*/
+    SUM(IF(v.venuecity <> u.city, 1, 0)) AS 'Visitantes' /*Calcula el total de asistentes visitantes. Si la ciudad del lugar es diferente de la ciudad del usuario, suma 1; de lo contrario, suma 0.*/
+FROM event e 
+JOIN venue v ON e.venueid = v.venueid /*Une la tabla de eventos con la tabla de lugares usando el 'venueid', que relaciona el evento con su lugar*/
+JOIN sales s ON e.eventid = s.eventid /*Une la tabla de eventos con la tabla de ventas para saber quién compró entradas para un evento específico*/
+JOIN users u ON s.buyerid = u.userid /*Une la tabla de ventas con la tabla de usuarios para acceder a la información de cada comprador (por ejemplo, su ciudad).*/
+JOIN date d ON e.dateid = d.dateid /*Une la tabla de eventos con la tabla de fechas para filtrar eventos según la semana específica.*/
+WHERE d.week = 9 /*Filtra los eventos que ocurrieron en la semana número 9.*/
+GROUP BY e.eventid, e.eventname /*Agrupa los resultados por cada evento, identificándolos mediante su ID y nombre.*/
+ORDER BY e.eventid; /*Ordena los resultados por 'eventid' para facilitar la lectura en orden ascendente.*/
+
 
 -- Pregunta 3.11 Eliminar de la tabla users a todos aquellos usuarios registrados que no hayan comprado ni vendido 
 -- ninguna entrada. Antes de eliminarlos, copiarlos a una tabla denominada backup_users para poder recuperarlos en caso 
@@ -85,6 +97,25 @@ FROM users;
 -- Probar la función en una consulta contra la tabla de socios y enviando directamente el nombre con tus datos en forma 
 -- literal, por ejemplo escribir:
 -- SELECT NombreResumido("Rita", "de la Torre") para probar la función, deberá devolver: R. DE LA TORRE.
+
+DELIMITER \ /*Cambia el delimitador estándar (;) al delimitador $$. Esto es necesario para definir bloques como funciones y procedimientos en MySQL.*/
+
+CREATE FUNCTION NombreResumido(nombre VARCHAR(255), apellido VARCHAR(255)) /*Crea una función llamada NombreResumido*/
+RETURNS VARCHAR(255)
+DETERMINISTIC /*Especifica que la función es determinística, lo que significa que siempre devolverá el mismo resultado para los mismos parámetros de entrada.*/
+BEGIN
+    /*Concatenar la inicial del nombre, un punto y el apellido en mayúsculas*/
+    RETURN CONCAT(UCASE(LEFT(nombre, 1)), '. ', UCASE(apellido)); /*Obtiene la inicial del 'nombre' (LEFT), la convierte a mayúscula (UCASE), y concatena con un punto y el 'apellido' convertido a mayúsculas.*/
+END; /*Fin de la definición de la función.*/
+
+-- Probamos con nuestro nombre
+
+SELECT NombreResumido("Marius", "Ciurana") AS Nombre_Resumido;
+
+-- Probamos con la tabla users
+
+SELECT userid, username, NombreResumido(firstname, lastname) AS Nombre_Resumido 
+FROM users; 
 
 -- Pregunta 3.15 Actualizar el campo VIP de la tabla de usuarios a sí a aquellos usuarios que hayan comprado 
 -- más de 10 tickets para los eventos o aquellos que hayan vendido más de 25 tickets.
@@ -148,6 +179,36 @@ SET birthdate = STR_TO_DATE(
 -- durante el mes (que recibirá la función por parámetro). La función devolverá "Kit" o "-". Hacer una consulta pertinente
 -- para probar la función.
 
+DELIMITER \
+
+CREATE FUNCTION Kit_Eventos(Birthdate DATE, Mes_actual INT)
+RETURNS VARCHAR(20)
+DETERMINISTIC
+BEGIN
+    -- Declaramos la variable 'Resultado' que almacenará el valor de retorno.
+    DECLARE Resultado VARCHAR(20);
+    
+    -- Verificamos si el mes de la fecha de nacimiento del usuario coincide con el mes actual.
+    IF MONTH(Birthdate) = Mes_actual THEN
+        -- Si el mes coincide, asignamos 'Kit' como valor de retorno.
+        SET Resultado = 'Kit';
+    ELSE
+        -- Si el mes no coincide, asignamos '-' como valor de retorno.
+        SET Resultado = '-';
+    END IF;
+
+    -- Devolvemos el resultado de la evaluación.
+    RETURN Resultado;
+END;
+
+
+SELECT 
+    firstname, birthdate, VIP,                       
+    Kit_Eventos(birthdate, MONTH(CURRENT_DATE())) AS Resultado -- Llama a la función 'Kit_Eventos' para determinar si el usuario recibe un kit.
+FROM users
+WHERE VIP = 'Sí' AND MONTH(birthdate) = MONTH(CURRENT_DATE()); -- Filtra solo usuarios VIP que cumplen años en el mes actual.
+
+
 -- Pregunta 3.19 Inventar una función UDF que permita optimizar las operaciones de la Base de Datos. Justificarla.
 
 
@@ -179,9 +240,9 @@ CREATE VIEW cumpleanhos AS
 set @esVIP = true;
 set @monthbirthday = MONTH(curdate());
 
-
 -- Pregunta 3.22 Hacer una consulta basada en la vista cumpleanhos que utilice las variables de usuario para filtrar los 
 -- cumpleañeros del mes en @monthbirthday cuyo valor en el campo VIP coincida con el asignado a la variable @esVIP.
+-- Consulta basada en la vista cumpleanhos
 SELECT userid, username, NombreResumido, VIP, dia, mes, birthdate
 FROM cumpleanhos
 WHERE VIP = @esVIP AND mes = @monthbirthday;
