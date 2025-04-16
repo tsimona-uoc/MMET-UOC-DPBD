@@ -35,6 +35,22 @@
 -- La salida de la consulta deberá ser la siguiente. Utilizar la función CASE y agrupar. 
 
 
+select u.userid, u.username, u.firstname, u.lastname,
+(
+case
+	when s.sellerid is not null and b.buyerid is not null THEN 'Ambos'
+   when s.sellerid is null and b.buyerid is not null THEN 'Comprador'
+   when s.sellerid is not null and b.buyerid is null THEN 'Vendedor'
+   else 'Ninguno'
+end
+) as TipoUsuario
+from
+	users u
+    left join sales s on s.sellerid = u.userid -- Entradas donde el usuario es el vendedor
+    left join sales b on b.buyerid = u.userid -- Entradas donde el usuario es el comprador
+group by u.userid, u.username, u.firstname, u.lastname;
+
+
 -- Pregunta 3.13 Inventar una consulta que haga uso de una de las siguientes funciones: COALESCE, IFNULL, NULLIF.
 -- Explicar su objetivo en los comentarios de la plantilla .sql
 
@@ -53,6 +69,35 @@
 -- Pregunta 3.16 Crear una función UDF llamada Pases_cortesía. Se regalará 1 pase de cortesía por cada 10 tickets comprados
 -- o vendidos, a los usuarios VIP. Hacer una consulta denominada pases_usuarios para probar la función y guardarla como 
 -- una vista. Los campos de la misma deberán ser: userid, username, NombreResumido, número de pases.
+
+DELIMITER \
+
+CREATE FUNCTION Pases_cortesía(ticket_count INT)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    RETURN FLOOR(ticket_count / 10);
+END;
+
+CREATE VIEW pases_usuarios 
+AS
+SELECT 
+users.userid, 
+users.username, 
+NombreResumido(users.firstname, users.lastname) 
+AS NombreResumido,
+    Pases_cortesía(IFNULL(SUM(sales.qtysold), 0) + IFNULL(SUM(listing.numtickets), 0)) AS num_pases
+FROM users
+LEFT JOIN sales ON users.userid = sales.buyerid
+LEFT JOIN listing ON users.userid = listing.sellerid -- Relaciona las ventas de tickets
+WHERE 
+users.VIP = 'Sí'
+GROUP BY 
+users.userid, 
+users.username, 
+users.firstname, 
+users.lastname;
+
 
 -- Pregunta 3.17 La siguiente instrucción:
 
@@ -80,9 +125,32 @@ concat(
 -- Pregunta 3.20 Hacer una vista llamada cumpleanhos. La consulta de la vista, deberá tener los siguientes campos:
 -- userid, username, NombreResumido, VIP, dia, mes, birthdate
 
+
+CREATE VIEW cumpleanhos AS
+(
+   SELECT 
+      userid, 
+      username, 
+      NombreResumido(firstname, lastname), 
+      VIP, 
+      DAY(birthdate) as dia,
+      MONTH(birthdate) as mes, 
+      DATE(birthdate) as birthdate 
+   from 
+      users
+);
+
+
+
+
+
 -- Pregunta 3.21 Crear dos variables de usuario. Una denominada @esVIP y la otra @monthbirthday.
 -- Asignar un valor a la variable @esVIP (true / false).
 -- Asignar el valor del mes en curso a la variable @monthbirthday
+
+set @esVIP = true;
+set @monthbirthday = MONTH(curdate());
+
 
 -- Pregunta 3.22 Hacer una consulta basada en la vista cumpleanhos que utilice las variables de usuario para filtrar los 
 -- cumpleañeros del mes en @monthbirthday cuyo valor en el campo VIP coincida con el asignado a la variable @esVIP.
