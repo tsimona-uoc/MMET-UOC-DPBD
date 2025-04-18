@@ -182,6 +182,25 @@ FROM users;
 -- Pregunta 3.15 Actualizar el campo VIP de la tabla de usuarios a sí a aquellos usuarios que hayan comprado 
 -- más de 10 tickets para los eventos o aquellos que hayan vendido más de 25 tickets.
 
+ALTER TABLE users
+ADD COLUMN VIP VARCHAR(3) DEFAULT 'no';
+
+UPDATE users
+SET VIP = 'sí'
+WHERE userid IN (
+    SELECT buyerid
+    FROM sales
+    GROUP BY buyerid
+    HAVING COUNT(*) > 10
+
+    UNION
+
+    SELECT userid
+    FROM listing
+    GROUP BY userid
+    HAVING COUNT(*) > 25
+);
+
 -- Pregunta 3.16 Crear una función UDF llamada Pases_cortesía. Se regalará 1 pase de cortesía por cada 10 tickets comprados
 -- o vendidos, a los usuarios VIP. Hacer una consulta denominada pases_usuarios para probar la función y guardarla como 
 -- una vista. Los campos de la misma deberán ser: userid, username, NombreResumido, número de pases.
