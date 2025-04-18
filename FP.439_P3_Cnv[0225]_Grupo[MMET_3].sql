@@ -110,3 +110,42 @@ FROM users;
 DROP FUNCTION IF EXISTS `NombreResumido`;
 
 SHOW FUNCTION STATUS WHERE Db = 'fp_204_23';
+
+-- 3.19 Inventar una función UDF que permita optimizar las operaciones de la Base de Datos. Justificarla.
+/*Se crea una subconsulta que devuelve la categoria musical más comprada por un usuario. 
+Esto puede ser útil a la hora de analizar el mercado para tener un mejor enfoque de negocio en la venta de entradas.*/
+DELIMITER // 
+
+CREATE FUNCTION categoria_mas_comprada (uid INT) /*Se crea la función llamda categoria más vendida que recibirá un parámetro de tipo entero (id de usuario)*/
+RETURNS VARCHAR(10) /*La función devuelve el nombre de categoría, máximo 10 caracteres que es la misma longitud que tiene la columna catname en la tabla categoría*/
+DETERMINISTIC /*La función devolverá la misma salida para los mismos parámetros de entrada */
+READS SQL DATA /*La función es de solo lectura  ya que utiliza la consulta SELECT*/
+BEGIN
+	DECLARE mejor_categoria VARCHAR(10); /*Se declara la variable que almacenará el nombre de categoría */
+    SELECT c.catname /*Se extrae el nombre de la categoría de la tabla category y se inserta en la variable mejor_cateogria */
+    INTO mejor_categoria 
+    FROM sales s 
+    JOIN listing l ON s.listid = l.listid /*Combino la tabla sales con la tabla listing donde listid es PK en la tabla listing y FK en la tabla sales*/
+    JOIN event e ON l.eventid = e.eventid /*Combino la tabla listing con la tabla event donde eventid es PK en la tabla event y FK en la tabla listing */
+    JOIN category c ON e.catid = c.catid /*Combino la tabla event con la tabla category donde catid es PK de la tabla category y FK en la tabla event */
+    WHERE s.buyerid = uid /*Se filtan los registros para seleccionar el buyerid que coincida con buyerid recibido como parametro por la función*/
+    GROUP BY c.catname
+    ORDER BY COUNT(*) DESC
+    LIMIT 1;
+    
+    RETURN mejor_categoria;
+END//
+
+DELIMITER ;
+
+/*Para comprobar la función se crea la consulta con la tabla users, pasandole a la función el parámetro de userid*/
+SELECT 
+	u.userid,
+    u.username,
+    u.firstname,
+    u.lastname,
+    categoria_mas_comprada (u.userid) AS 'categoria preferida'
+FROM users u
+WHERE categoria_mas_comprada(u.userid) IS NOT NULL;
+
+DROP FUNCTION IF EXISTS `categoria_mas_comprada`;
