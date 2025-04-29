@@ -76,11 +76,34 @@ LEFT JOIN (
 GROUP BY c.catgroup
 ORDER BY tickets_vendidos DESC;
 
+-- Creamos una vista sobre los tickets vendidos ya que será una consulta frecuente en la BBDD ya que simplifica la consulta principal, haciéndola más legible.
+
+CREATE VIEW vista_tickets_vendidos AS
+SELECT 
+    e.eventid,
+    COALESCE(SUM(s.qtysold), 0) AS tickets_vendidos
+FROM event e
+LEFT JOIN sales s ON e.eventid = s.eventid
+GROUP BY e.eventid;
+
+-- Podemos usar esta consulta usando la vista creada lo que resulta más eficaz
+
+SELECT 
+    c.catgroup,
+    vt.tickets_vendidos,
+    COALESCE(SUM(l.numtickets), 0) - vt.tickets_vendidos AS tickets_sin_vender
+FROM category c
+LEFT JOIN event e ON e.catid = c.catid
+LEFT JOIN listing l ON l.eventid = e.eventid
+LEFT JOIN vista_tickets_vendidos vt ON e.eventid = vt.eventid
+GROUP BY c.catgroup
+ORDER BY vt.tickets_vendidos DESC;
+
 -- Pregunta 2.22 Crea una vista con los eventos del mes de la tabla que coincida con el mes actual. Grabar la vista con el nombre Eventos del mes
 create view EventosDelMes AS select * from event where MONTH(starttime) = MONTH(CURDATE());
 -- Se selecciona el mes de cada entrada y se filtra para que ese mes sea igual al mes en el que se lanza la consulta
 
--- Consulta mejorada
+-- Consulta optimizada
 -- Primero, crear un índice funcional si tu versión de MySQL lo permite (8.0+)
 CREATE INDEX idx_event_starttime_month ON event((MONTH(starttime)), ((YEAR(starttime)));
 
@@ -165,13 +188,13 @@ WHERE userid IN (
     HAVING COUNT(*) > 25
 );
 
--- Consulta Mejorada
+-- Consulta optimizada
 
 -- Primero asegurar índices (si no existen)
 CREATE INDEX IF NOT EXISTS idx_sales_buyer ON sales(buyerid);
 CREATE INDEX IF NOT EXISTS idx_listing_seller ON listing(userid);
 
--- Opción 1: Actualización en una sola pasada con JOINs
+-- Actualización en una sola pasada con JOINs
 UPDATE users u
 JOIN (
     SELECT userid, 
@@ -232,7 +255,7 @@ WHERE categoria_mas_comprada(u.userid) IS NOT NULL;
 
 DROP FUNCTION IF EXISTS `categoria_mas_comprada`;
 
--- Consulta mejorada
+-- Consulta optimizada
 
 CREATE INDEX idx_sales_buyer ON sales(buyerid);
 CREATE INDEX idx_listing_event ON listing(eventid);
