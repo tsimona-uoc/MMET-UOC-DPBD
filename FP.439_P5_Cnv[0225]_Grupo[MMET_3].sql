@@ -21,19 +21,94 @@
   localidad: varchar(15)
   starttime timestamp
     
+CREATE TABLE shows_semanales (
+año smallint,
+mes char(5),
+semana smallint,
+catname varchar(10),
+eventname varchar(200),
+localidad varchar(15),
+starttime timestamp
+);
+
 -- 5.2 Crear un procedimiento almacenado denominado shows_semana_proxima que realice lo siguiente:
   Vaciar la tabla shows_semanales.
   Llenar la tabla con los shows planificados para la semana siguiente a la semana en curso. Llenar los campos con la siguiente información
-      año: Los cuatro dígitos del año (2008).
-      mes: Nombre del mes (abreviado), ejemplo: JUN.
-      semana: Número de semana, ejemplo: 26.
-      catname: Nombre descriptivo abreviado de un tipo de eventos en un grupo, ejemplo: Opera.
-      eventname: Nombre del evento, ejemplo: Hamlet.
-      localidad: Nombre del recinto, ejemplo: Cleveland Browns Stadium, concatenado con el nombre de la ciudad, ejemplo: Cleveland.
-      starttime Fecha y hora de inicio del evento, ejemplo: 2008-10-10 19:30:00.
+  año: Los cuatro dígitos del año (2008).
+  mes: Nombre del mes (abreviado), ejemplo: JUN.
+  semana: Número de semana, ejemplo: 26.
+  catname: Nombre descriptivo abreviado de un tipo de eventos en un grupo, ejemplo: Opera.
+  eventname: Nombre del evento, ejemplo: Hamlet.
+  localidad: Nombre del recinto, ejemplo: Cleveland Browns Stadium, concatenado con el nombre de la ciudad, ejemplo: Cleveland.
+  starttime Fecha y hora de inicio del evento, ejemplo: 2008-10-10 19:30:00.
+
+DELIMITER //
+CREATE PROCEDURE shows_semana_proxima ()
+BEGIN
+
+	DECLARE done INT DEFAULT FALSE;
+    DECLARE año smallint;
+	DECLARE mes char(5);
+	DECLARE semana smallint;
+	DECLARE catname varchar(10);
+	DECLARE eventname varchar(200);
+	DECLARE localidad varchar(15);
+	DECLARE starttime timestamp;
+    
+    declare cur cursor for select * from (
+		select 
+			YEAR(e.starttime) as año, 
+			DATE_FORMAT(e.starttime, "%b")  as mes,
+			WEEK(e.starttime) as semana,
+			c.catname as catname,
+			e.eventname as eventname,
+			CONCAT(v.venuename, ', ', v.venuecity) as localidad,
+			e.starttime as starttime
+			from
+		event e
+		inner join category c on e.catid = c.catid
+		inner join venue v on v.venueid = e.venueid
+		where
+		WEEK(CURDATE()) + 1 = (WEEK(e.starttime))
+	) tabla_shows_proxima_semana;
+    
+	-- Declarar handler para cuando no haya más filas
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+	DELETE FROM shows_semanales;
+
+	OPEN cur;
+    read_loop: LOOP
+        FETCH cur INTO año, mes, semana, catname, eventname, localidad, starttime;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+       
+        INSERT INTO shows_semanales VALUES (año, mes, semana, catname, eventname, localidad, starttime);
+    END LOOP;
+    CLOSE cur;
+END;
+
+call shows_semana_proxima();
 
 -- 5.3 Crear un evento que ejecute cada día sábado a las 8 de la mañana el procedimiento shows_semana_proxima y que permita exportar la tabla shows_semanales generada por el procedimiento anterior a un archivo de texto.
-    
+  
+DELIMITER //
+CREATE EVENT evento_exportacion_diaria
+ON SCHEDULE EVERY 1 DAY
+STARTS CONCAT(CURDATE() + INTERVAL 1 DAY, ' 08:00:00')
+DO
+BEGIN
+CALL shows_semana_proxima();
+
+SELECT * 
+INTO OUTFILE '/tmp/datos_diarios.csv'
+FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+FROM shows_semanales;
+END;
+
+
 -- 5.4 Crear manualmente una tabla denominada ventas_entradas. Agregar los siguientes campos:
   caldate: date. Fecha de calendario, como 2008-06-24.
   sellerid: integer. Referencia de clave externa a la tabla USERS (el usuario que vendió los tickets).
