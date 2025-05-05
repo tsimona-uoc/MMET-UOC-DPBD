@@ -20,6 +20,16 @@
   eventname: varchar(200)
   localidad: varchar(15)
   starttime timestamp
+
+  CREATE TABLE shows_semanales (
+    año smallint,
+    mes char(5),
+    semana smallint,
+    catname varchar(10),
+    eventname varchar(200),
+    localidad varchar(15),
+    starttime timestamp
+  );
     
 CREATE TABLE shows_semanales (
 año smallint,
@@ -117,6 +127,16 @@ END;
   qtysold: integer. La cantidad de entradas vendidas en una fecha.
   pricepaid: decimal(8,2) La suma del precio total por la venta de entradas.
   profit: decimal(8,2) La suma de las ganancias 85% a pagar al vendedor para ese día.
+
+  create table ventas_entradas (
+    caldate date, 
+    sellerid integer,
+    sellername varchar(35),
+    email varchar(100),
+    qtysold integer,
+    pricepaid decimal(8,2),
+    profit decimal(8,2)
+  );
     
 -- 5.5 Crear un procedimiento almacenado denominado profit_sellers que realice lo siguiente:
   Vaciar la tabla ventas_entradas
@@ -124,6 +144,65 @@ END;
   (Dado que el año es 2008 no se tomará en cuenta en el ejercicio).
   La tabla deberá tener un registro por cada vendedor cuyas ventas de ese día sean superiores a 0.
 
+  DELIMITER //
+  CREATE PROCEDURE profit_sellers ()
+  BEGIN
+	  DECLARE done INT DEFAULT FALSE;
+    DECLARE caldate date;
+    DECLARE sellerid integer;
+    DECLARE sellername varchar(35);
+    DECLARE email varchar(100);
+    DECLARE qtysold integer;
+    DECLARE pricepaid decimal(8,2);
+    DECLARE profit decimal(8,2);
+    
+    DECLARE cur cursor for SELECT * FROM (
+      SELECT
+        d.caldate as caldate,
+              s.sellerid as sellerid,
+              NombreResumido(u.firstname, u.lastname) as sellername,
+              u.email as email,
+              s.qtysold as qtysold,
+              s.pricepaid as pricepaid,
+              (0.85 * s.pricepaid) as profit
+              FROM
+      date d
+          inner join sales s on d.dateid = s.dateid
+          inner join users u on s.sellerid = u.userid
+          WHERE 
+          MONTH(d.caldate) = MONTH(CURRENT_DATE()) 
+      AND DAY(d.caldate) = DAY(CURRENT_DATE())          
+      ) tabla_profit_sellers;
+
+    -- Declarar handler para cuando no haya más filas
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+      
+    DELETE FROM ventas_entradas;
+
+    OPEN cur;
+      read_loop: LOOP
+          FETCH cur INTO caldate, sellerid, sellername, email, qtysold, pricepaid, profit;
+          IF done THEN
+              LEAVE read_loop;
+          END IF;
+        
+          INSERT INTO ventas_entradas VALUES (caldate, sellerid, sellername, email, qtysold, pricepaid, profit);
+      END LOOP;
+      CLOSE cur;
+    END;
+
+  call profit_sellers();
+
 -- 5.6 Crear un evento que ejecute cada día a las 23:59 el procedimiento profit_sellers.
+
+  DELIMITER // 
+  CREATE EVENT evento_exportacion_diaria 
+  ON SCHEDULE 
+  EVERY 1 DAY 
+  STARTS CONCAT(CURDATE() + INTERVAL 1 DAY, ' 23:59:00') 
+  DO 
+  BEGIN 
+  CALL profit_sellers();
+  END;
 
 -- 5.7 Inventar un procedimiento almacenado que permita optimizar las operaciones del sistema. Justificarlo
