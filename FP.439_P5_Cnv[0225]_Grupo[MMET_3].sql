@@ -147,7 +147,7 @@ END;
   DELIMITER //
   CREATE PROCEDURE profit_sellers ()
   BEGIN
-	  DECLARE done INT DEFAULT FALSE;
+    DECLARE done INT DEFAULT FALSE;
     DECLARE caldate date;
     DECLARE sellerid integer;
     DECLARE sellername varchar(35);
@@ -159,19 +159,19 @@ END;
     DECLARE cur cursor for SELECT * FROM (
       SELECT
         d.caldate as caldate,
-              s.sellerid as sellerid,
-              NombreResumido(u.firstname, u.lastname) as sellername,
-              u.email as email,
-              s.qtysold as qtysold,
-              s.pricepaid as pricepaid,
-              (0.85 * s.pricepaid) as profit
-              FROM
-      date d
-          inner join sales s on d.dateid = s.dateid
-          inner join users u on s.sellerid = u.userid
-          WHERE 
-          MONTH(d.caldate) = MONTH(CURRENT_DATE()) 
-      AND DAY(d.caldate) = DAY(CURRENT_DATE())          
+        s.sellerid as sellerid,
+        NombreResumido(u.firstname, u.lastname) as sellername,
+        u.email as email,
+        s.qtysold as qtysold,
+        s.pricepaid as pricepaid,
+        (0.85 * s.pricepaid) as profit
+        FROM
+	date d
+        inner join sales s on d.dateid = s.dateid
+        inner join users u on s.sellerid = u.userid
+        WHERE 
+        MONTH(d.caldate) = MONTH(CURRENT_DATE()) 
+	AND DAY(d.caldate) = DAY(CURRENT_DATE())          
       ) tabla_profit_sellers;
 
     -- Declarar handler para cuando no haya más filas
