@@ -80,7 +80,7 @@ BEGIN
 		inner join venue v on v.venueid = e.venueid
 		where
 		WEEK(CURDATE()) + 1 = (WEEK(e.starttime))
-	) tabla_shows_proxima_semana;
+	) AS tabla_shows_proxima_semana;
     
 	-- Declarar handler para cuando no haya más filas
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -104,19 +104,25 @@ call shows_semana_proxima();
 -- 5.3 Crear un evento que ejecute cada día sábado a las 8 de la mañana el procedimiento shows_semana_proxima y que permita exportar la tabla shows_semanales generada por el procedimiento anterior a un archivo de texto.
   
 DELIMITER //
-CREATE EVENT evento_exportacion_diaria
-ON SCHEDULE EVERY 1 DAY
-STARTS CONCAT(CURDATE() + INTERVAL 1 DAY, ' 08:00:00')
-DO
-BEGIN
-CALL shows_semana_proxima();
 
-SELECT * 
-INTO OUTFILE '/tmp/datos_diarios.csv'
-FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
-LINES TERMINATED BY '\n'
-FROM shows_semanales;
-END;
+CREATE EVENT evento_exportacion_semanal
+ON SCHEDULE 
+EVERY 1 WEEK 
+STARTS TIMESTAMP(CURRENT_DATE + INTERVAL (7 - DAYOFWEEK(CURRENT_DATE)) DAY, '08:00:00')
+DO 
+BEGIN
+    CALL shows_semana_proxima();
+
+    -- Exportar la tabla shows_semanales a un archivo de texto
+    SELECT * 
+    INTO OUTFILE '/var/lib/mysql-files/shows_semanales.txt'
+    FIELDS TERMINATED BY ',' 
+    ENCLOSED BY '"'
+    LINES TERMINATED BY '\n'
+    FROM shows_semanales;
+END //
+
+DELIMITER ;
 
 
 -- 5.4 Crear manualmente una tabla denominada ventas_entradas. Agregar los siguientes campos:
@@ -172,7 +178,7 @@ END;
           WHERE 
           MONTH(d.caldate) = MONTH(CURRENT_DATE()) 
       AND DAY(d.caldate) = DAY(CURRENT_DATE())          
-      ) tabla_profit_sellers;
+      ) AS tabla_profit_sellers;
 
     -- Declarar handler para cuando no haya más filas
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -187,9 +193,9 @@ END;
           END IF;
         
           INSERT INTO ventas_entradas VALUES (caldate, sellerid, sellername, email, qtysold, pricepaid, profit);
-      END LOOP;
-      CLOSE cur;
-    END;
+    END LOOP;
+    CLOSE cur;
+  END;
 
   call profit_sellers();
 
@@ -206,3 +212,60 @@ END;
   END;
 
 -- 5.7 Inventar un procedimiento almacenado que permita optimizar las operaciones del sistema. Justificarlo
+--
+-- Se decide crear un evento que mueva los registro de la tabla "sales" a una nueva tabla "sales_history" cuya
+-- fecha de venta sea anterior a CURRENT_DATE - 5 años, dado todos los registros de la tabla son antiguos, se moverán todo
+-- pero en el instante en el que se inserte una nueva venta, esta no se moverá.
+-- Justificación:
+-- 1. Mejora del Rendimiento en la Tabla Activa:
+-- 1.1. Las consultas que necesiten comprobar datos usando esta tabla se verán afectadas mejorando el rendimiento
+-- 2. Escalabilidad y Mantenibilidad:
+-- 2.1. Al tener un volumen de datos menor, es mas facil gestionar los registros y realizar un analisis de datos mejor
+
+create table sales_history like sales;
+
+DELIMITER //
+CREATE PROCEDURE `sales_history_migration`()
+BEGIN
+  DECLARE done INT DEFAULT FALSE;
+  DECLARE sid INT;
+  declare listid int;
+	declare sellerid int;
+	declare buyerid int;
+	declare eventid int;
+	declare dateid smallint;
+	declare qtysold smallint;
+	declare pricepaid decimal(8,2);
+	declare commission decimal(8,2);
+	declare st timestamp;
+    
+	DECLARE cur CURSOR FOR SELECT * FROM sales WHERE saletime < (CURRENT_DATE - INTERVAL 6 YEAR);
+
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    OPEN cur;
+    read_loop: LOOP
+        FETCH cur INTO sid, listid, sellerid, buyerid, eventid, dateid, qtysold, pricepaid, commission, st;
+        
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        
+        INSERT INTO sales_history (salesid, listid, sellerid, buyerid, eventid, dateid, qtysold, pricepaid, saletime) VALUES (sid, listid, sellerid, buyerid, eventid, dateid, qtysold, pricepaid, saletime);
+        DELETE FROM sales WHERE salesid = sid;
+        
+    END LOOP;
+    CLOSE cur;
+END;
+
+
+DELIMITER // 
+CREATE EVENT evento_historificacion_usuarios
+ON SCHEDULE 
+EVERY 1 MONTH 
+STARTS '2025-06-01 02:00:00'
+DO 
+BEGIN 
+CALL sales_history_migration();
+END;
