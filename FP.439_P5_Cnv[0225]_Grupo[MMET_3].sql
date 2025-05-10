@@ -131,7 +131,7 @@ BEGIN
             INNER JOIN sales s ON s.dateid = d.dateid
             INNER JOIN users u ON u.userid = s.sellerid
             WHERE
-            MONTH(d.caldate) = MONTH(CURRENT_DATE()) AND DAY(d.caldate) = DAY(CURRENT_DATE())
+            EXTRACT(MONTH FROM d.caldate) = EXTRACT(MONTH FROM CURRENT_DATE()) AND EXTRACT(DAY FROM d.caldate) = EXTRACT(DAY FROM CURRENT_DATE())
     )AS tabla_profit_sellers;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -148,7 +148,7 @@ BEGIN
             INSERT INTO ventas_entradas VALUES (caldate, sellerid, sellername, email, qtysold, pricepaid, profit);
             END LOOP;
             CLOSE cur;		
-END //
+END//
 DELIMITER ;
 
 DROP FUNCTION IF EXISTS NombreResumido;
