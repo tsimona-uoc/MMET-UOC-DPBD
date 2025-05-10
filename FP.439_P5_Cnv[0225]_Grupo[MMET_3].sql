@@ -132,7 +132,7 @@ BEGIN
             INNER JOIN users u ON u.userid = s.sellerid
             WHERE
             MONTH(d.caldate) = MONTH(CURRENT_DATE()) AND DAY(d.caldate) = DAY(CURRENT_DATE())
-    ) tabla_profit_sellers;
+    )AS tabla_profit_sellers;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
     
@@ -154,6 +154,7 @@ DELIMITER ;
 DROP FUNCTION IF EXISTS NombreResumido;
 DROP TABLE IF EXISTS ventas_entradas;
 DROP PROCEDURE IF EXISTS profit_sellers;
+CALL profit_sellers;
 
 SELECT *
 FROM ventas_entradas;
