@@ -12,43 +12,152 @@
 --
 -- Database: [fp_204_23]
 -- --------------------------------------------------------------
--- 5.1 Crear manualmente (CREATE TABLE) una tabla denominada shows_semanales. Agregar los siguientes campos:
-  año: smallint
-  mes: char(5)
-  semana: smallint
-  catname: varchar(10)
-  eventname: varchar(200)
-  localidad: varchar(15)
-  starttime timestamp
-    
--- 5.2 Crear un procedimiento almacenado denominado shows_semana_proxima que realice lo siguiente:
-  Vaciar la tabla shows_semanales.
-  Llenar la tabla con los shows planificados para la semana siguiente a la semana en curso. Llenar los campos con la siguiente información
-      año: Los cuatro dígitos del año (2008).
-      mes: Nombre del mes (abreviado), ejemplo: JUN.
-      semana: Número de semana, ejemplo: 26.
-      catname: Nombre descriptivo abreviado de un tipo de eventos en un grupo, ejemplo: Opera.
-      eventname: Nombre del evento, ejemplo: Hamlet.
-      localidad: Nombre del recinto, ejemplo: Cleveland Browns Stadium, concatenado con el nombre de la ciudad, ejemplo: Cleveland.
-      starttime Fecha y hora de inicio del evento, ejemplo: 2008-10-10 19:30:00.
+-- 1. Crear manualmente (CREATE TABLE) una tabla denominada shows_semanales. 
 
--- 5.3 Crear un evento que ejecute cada día sábado a las 8 de la mañana el procedimiento shows_semana_proxima y que permita exportar la tabla shows_semanales generada por el procedimiento anterior a un archivo de texto.
+CREATE TABLE shows_semanales(
+año SMALLINT,
+mes CHAR(5),
+semana SMALLINT,
+catname VARCHAR(10),
+eventname VARCHAR(200),
+localidad VARCHAR(15),
+starttime TIMESTAMP 
+);
+-- 2. Crear un procedimiento almacenado denominado shows_semana_proxima
+DELIMITER //
+CREATE PROCEDURE shows_semana_proxima()
+BEGIN
+	DECLARE fecha_referencia DATE DEFAULT '2008-01-10';
+	DECLARE done INT DEFAULT FALSE;
+	DECLARE año SMALLINT;
+	DECLARE mes CHAR(5);
+	DECLARE semana SMALLINT;
+    DECLARE catname VARCHAR(10);
+    DECLARE eventname VARCHAR(200);
+    DECLARE localidad VARCHAR(15);
+    DECLARE starttime TIMESTAMP;
     
--- 5.4 Crear manualmente una tabla denominada ventas_entradas. Agregar los siguientes campos:
-  caldate: date. Fecha de calendario, como 2008-06-24.
-  sellerid: integer. Referencia de clave externa a la tabla USERS (el usuario que vendió los tickets).
-  sellername: varchar(35) Usar la función NombreResumido para llenar este campo
-  email: varchar(100) Dirección de correo electrónico del usuario
-  qtysold: integer. La cantidad de entradas vendidas en una fecha.
-  pricepaid: decimal(8,2) La suma del precio total por la venta de entradas.
-  profit: decimal(8,2) La suma de las ganancias 85% a pagar al vendedor para ese día.
+    DECLARE cur CURSOR FOR SELECT * FROM (
+		SELECT
+			YEAR(e.starttime) AS año,
+			DATE_FORMAT(e.starttime, "%b") AS mes,
+			WEEK(e.starttime) AS semana,
+			c.catname AS catname,
+            e.eventname AS eventname,
+			v.venuecity AS localidad,
+			e.starttime AS starttime
+			FROM 
+		event e 
+		INNER JOIN category c ON c.catid = e.catid
+		INNER JOIN venue v ON v.venueid = e.venueid
+        WHERE
+        WEEK(fecha_referencia) + 1 = (WEEK(e.starttime))
+    )AS tabla_shows_semana_proxima;
     
--- 5.5 Crear un procedimiento almacenado denominado profit_sellers que realice lo siguiente:
-  Vaciar la tabla ventas_entradas
-  Llenar la tabla, para el día y mes que coincida con el día y el mes de la fecha actual (CURRENT_DATE()).
-  (Dado que el año es 2008 no se tomará en cuenta en el ejercicio).
-  La tabla deberá tener un registro por cada vendedor cuyas ventas de ese día sean superiores a 0.
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE; 
+    
+    DELETE FROM shows_semanales;
+    
+    OPEN cur;
+    read_loop: LOOP
+    FETCH cur INTO año, mes, semana, catname, eventname, localidad, starttime; 
+		IF DONE THEN
+			LEAVE read_loop;
+		END IF;
+        INSERT INTO shows_semanales VALUES (año, mes, semana, catname, eventname, localidad, starttime);
+    END LOOP;    
+    CLOSE cur;
+END // 
+DELIMITER ;
 
--- 5.6 Crear un evento que ejecute cada día a las 23:59 el procedimiento profit_sellers.
+SELECT *
+FROM shows_semanales;
 
--- 5.7 Inventar un procedimiento almacenado que permita optimizar las operaciones del sistema. Justificarlo
+DROP TABLE shows_semanales;
+
+DROP PROCEDURE shows_semana_proxima;
+
+SELECT * 
+FROM event;
+
+SELECT WEEK(starttime) 
+FROM event
+WHERE WEEK(starttime) = 2;
+
+-- 4. Crear manualmente una tabla denominada ventas_entradas. 
+CREATE TABLE ventas_entradas(
+caldate DATE,
+sellerid INT,
+sellername VARCHAR(35),
+email VARCHAR(100),
+qtysold INT,
+pricepaid DECIMAL(8,2),
+profit DECIMAL(8,2)
+);
+
+-- 5. Crear un procedimiento almacenado denominado profit_sellers.
+DELIMITER //
+CREATE FUNCTION NombreResumido(nombre VARCHAR(30), apellido VARCHAR(30))
+RETURNS VARCHAR(35)
+DETERMINISTIC
+BEGIN
+	RETURN CONCAT(UCASE(LEFT(nombre, 1)), '. ', UCASE(apellido));
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE profit_sellers()
+BEGIN
+	DECLARE done INT DEFAULT FALSE;
+	DECLARE caldate DATE;
+    DECLARE sellerid INT;
+    DECLARE sellername VARCHAR(35);
+    DECLARE email VARCHAR(100);
+    DECLARE qtysold INT;
+    DECLARE pricepaid DECIMAL(8,2);
+    DECLARE profit DECIMAL(8,2);
+    
+    DECLARE cur CURSOR FOR SELECT * FROM(
+		SELECT 
+			d.caldate AS caldate,
+            s.sellerid AS sellerid,
+            NombreResumido(u.firstname, u.lastname) AS sellername,
+            u.email AS email,
+            s.qtysold AS qtysold,
+            s.pricepaid AS pricepaid,
+            (0.85 * s.pricepaid) AS profit
+			FROM
+            date d 
+            INNER JOIN sales s ON s.dateid = d.dateid
+            INNER JOIN users u ON u.userid = s.sellerid
+            WHERE
+            MONTH(d.caldate) = MONTH(CURRENT_DATE()) AND DAY(d.caldate) = DAY(CURRENT_DATE())
+    ) tabla_profit_sellers;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    DELETE FROM ventas_entradas;
+    
+    OPEN cur; 
+		read_loop: LOOP
+			FETCH cur INTO caldate, sellerid, sellername, email, qtysold, pricepaid, profit;
+            IF done THEN
+				LEAVE read_loop;
+			END IF;
+            
+            INSERT INTO ventas_entradas VALUES (caldate, sellerid, sellername, email, qtysold, pricepaid, profit);
+            END LOOP;
+            CLOSE cur;		
+END //
+DELIMITER ;
+
+DROP FUNCTION IF EXISTS NombreResumido;
+DROP TABLE IF EXISTS ventas_entradas;
+DROP PROCEDURE IF EXISTS profit_sellers;
+
+SELECT *
+FROM ventas_entradas;
+
+SELECT * 
+FROM sales
+ORDER BY saletime;
